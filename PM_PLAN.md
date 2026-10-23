@@ -13,7 +13,7 @@
 | Repo | `TBD` (GitHub link — handed in end of Day 3) |
 | Team channel | `TBD` (Discord; API key shared only here) |
 
-Related files: [IDEA_PITCH.md](IDEA_PITCH.md) (due **13:00 today**) · [ACCEPTANCE_CRITERIA.md](ACCEPTANCE_CRITERIA.md)
+Related files: [IDEA_PITCH.md](IDEA_PITCH.md) (due **13:00 today**) · [ACCEPTANCE_CRITERIA.md](ACCEPTANCE_CRITERIA.md) · [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) · [PRD.md](PRD.md)
 
 ---
 
@@ -45,16 +45,17 @@ Ship **one working product** that a non-builder can use live, solving **one spec
 
 ## 2. Team & roles
 
-> Team member info pending. Assign each person exactly one primary role so nobody is idle.
+> Per-person checklists: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)
 
 | Name | Background | Primary role | Secondary | Contact |
 |---|---|---|---|---|
-| `TBD` | | PM / Facilitator | | |
-| `TBD` | | Build lead (dev) | | |
-| `TBD` | | Build (dev / no-code) | | |
-| `TBD` | | Research lead (user interviews) | | |
-| `TBD` | | Business lead (pricing, cost, business case) | | |
-| `TBD` | | Demo / Design lead (screens, script, slides) | | |
+| Nodir | PM, frontend | PM / Facilitator | Frontend, PRD, pitch speaker, submission | `TBD` |
+| Utkarsh | Backend, AI | Build lead (backend + AI integration) | | `TBD` |
+| Bhuvanesh | Dashboards, BI | Build (Supabase demo data, contacts dashboard) | Cost log | `TBD` |
+| Anastasiya | Marketing, CX-UX | Research lead (ICP, interviews) | Demo / Design (script, UX copy, GTM) | `TBD` |
+| Sadaf | Market analysis | Business lead (pricing, competition, market) | Business slides | `TBD` |
+
+Demo/Design is split: Anastasiya owns script + UX, Nodir owns frontend + slides submission.
 
 ### RACI (R = does it, A = accountable, C = consulted)
 
@@ -159,10 +160,10 @@ Rules: ask about their last week, not your idea · past behaviour is fact, futur
 | Item | Decision |
 |---|---|
 | Team type | `TBD` — No dev / 1–2 devs / Automation / Voice |
-| Stack | `TBD` — e.g. AI Studio or Lovable + Sheets · Cursor + Streamlit + Supabase · n8n/Make + Forms/Sheets · ElevenLabs + API |
+| Stack | **Supabase** (Postgres, Storage for voice memos, Auth/RLS) — decided 23 Oct. Frontend framework + AI endpoint host: `TBD` (PRD D1) |
 | AI model / provider | `TBD` (key from mentor, Day 1) |
-| AI job | `TBD` — reads / sorts / drafts / searches docs / summarises |
-| Data source | `TBD` — Mockaroo / Kaggle / Berlin Open Data / EU Open Data (no real personal data) |
+| AI job | **Summarises** the note (typed or transcribed voice memo), **sorts** the contact to one of the user's projects, **drafts** the follow-up |
+| Data source | Invented events, projects and personas with fake profile URLs ([prototype/data.js](prototype/data.js) → `supabase/seed.sql`); no real personal data |
 | Hosting / live URL | `TBD` |
 
 Rule: choose with the mentor on Day 1 and **do not switch** mid-hackathon.
@@ -256,6 +257,7 @@ User does ──▶ [input] ──▶ AI does <job> ──▶ [output on one scr
 | 23 Oct | Scaffold created | PM | — |
 | 23 Oct | Idea: networking contact capture (QR + voice note → AI summary + project match → Notion) | Team | IDEA_PITCH filled; P-ACs drafted |
 | 23 Oct | Name: **Syncy** (product + team) | Team | Used in pitch, prototype, slides |
+| 23 Oct | **Phase 1 = Supabase** (events, projects, contacts); event picker, typed or voice notes, manual project pick, contacts dashboard. **Notion / notes-app sync = Phase 2** | Nodir (PM) | Supersedes "Notion only" below; schema in supabase/migrations, plan in IMPLEMENTATION_PLAN.md |
 | 23 Oct | No LinkedIn scraping — store profile URL only; Notion only (Drive later); fake personas for demo | Team | Avoids ToS / personal-data risk |
 
 ## 10. Help

@@ -13,7 +13,7 @@ Judges score: **30%** works live · **20%** real problem for a real user · **20
 - **Syncy**
 - Tagline: *From "who was that?" to a next step.*
 - Team Syncy · BCBT AI Entrepreneurship Hackathon · CIC Berlin · 23–26 Oct 2026
-- Visual: `01-today.png`
+- Visual: `02-event-home.png`
 
 ## 2. Problem
 
@@ -36,21 +36,21 @@ Three steps, one screen each:
 
 1. **Scan** their LinkedIn or Xing QR code (we store the link only, no scraping)
 2. **Record** a 20-second voice note right after the chat
-3. **Get** a contact card in your Notion: what you discussed, which of your projects it matters for, next step + date, a draft follow-up
+3. **Get** a contact card in Syncy: what you discussed, which of your projects it matters for, next step + date, a draft follow-up. Manage everything in the contacts dashboard; Notion / notes-app sync comes in Phase 2
 
-- Visuals: `02-scan.png` → `03-record.png` → `05-review.png` → `06-saved-to-notion.png`
+- Visuals: `01-event-picker.png` → `03-scan.png` → `04-note-and-project.png` (or `05-voice-memo.png`) → `07-review.png` → `10-dashboard.png`
 
 ## 5. What the AI does
 
 - **Summarises** the voice note: who they are, what was discussed, what they need
-- **Reads** your own project list in Notion and **sorts** the contact to the project it fits, with a one-line reason quoting the conversation
+- **Reads** your own project list (in Syncy; from Notion in Phase 2) and **sorts** the contact to the project it fits, with a one-line reason quoting the conversation. If you already picked a project after the scan, it keeps yours
 - **Drafts** the follow-up message (you review it; nothing is sent automatically)
 - Key line: *"Without the AI it's just another contact list."*
-- Visual: `04-ai-processing.png` + `05-review.png`
+- Visual: `06-ai-processing.png` + `07-review.png`
 
 ## 6. Demo
 
-- Live walkthrough: scan Lena → voice note → AI result → saved to Notion
+- Live walkthrough: enter the event → scan Lena → pick a project (optional) → voice memo → AI result → save → contacts dashboard
 - Backup: 2-minute screen recording (made on Day 3)
 
 ## 7. Business model: who pays and why switch
@@ -66,18 +66,20 @@ Three steps, one screen each:
 |---|---|---|
 | AI model (transcription + 2 short calls) | ~€0.01 per contact | < €5 at hackathon scale |
 | Hosting | free tier | €0 |
-| Notion API | free | €0 |
+| Supabase (database, voice-memo storage, auth) | free tier | €0 |
 | **Total** | | **< €5 / month** (update from PM_PLAN §7 cost log) |
 
 Dependencies and risks:
 - **AI model provider:** prices and API keys; we could switch to an open model (Ollama) if needed
-- **Notion API:** a single integration; Google Drive comes later
+- **Supabase:** database, storage and auth in one service; free tier covers the hackathon
+- **Notion / notes apps:** Phase 2 integration (projects in, contacts out), not a dependency of the MVP
 - **LinkedIn / Xing:** we only read the URL inside the QR code, no scraping, so changes to their terms don't break us
-- **Personal data:** notes about other people are stored in the user's own Notion, not on our servers; the demo uses invented people only
+- **Personal data:** notes about other people are stored per user with row-level security (each user sees only their own rows); the demo uses invented people only
 
 ## 9. What's next (the "Later" list)
 
-- Google Drive / Sheets as an alternative to Notion
+- Sync with Notion and other notes apps (Phase 2)
+- Google Drive / Sheets as another target
 - Photo of a badge or business card instead of a QR code
 - Reminders when a follow-up is due
 - Team version for sales and business-development teams
@@ -101,12 +103,15 @@ Dependencies and risks:
 
 | File | Shows |
 |---|---|
-| `01-today.png` | Home: the event, stats, the Scan button, people met today |
-| `02-scan.png` | QR scanner with a LinkedIn profile detected |
-| `03-record.png` | Voice note being recorded, transcript appearing live |
-| `04-ai-processing.png` | AI steps: transcribe → summarise → read projects → match → draft |
-| `05-review.png` | Result: matched project with reason, summary, next step, follow-up draft |
-| `06-saved-to-notion.png` | Saved: the row in the Notion contacts table |
-| `07-projects.png` | The user's own projects the AI matches against |
+| `01-event-picker.png` | Choose, create or edit the event, then enter it |
+| `02-event-home.png` | Inside the event: link, stats, Scan button, people scanned here |
+| `03-scan.png` | QR scanned: link, slug and name saved at once |
+| `04-note-and-project.png` | Pick a project (optional) and write a note |
+| `05-voice-memo.png` | Voice memo being recorded, transcript appearing live |
+| `06-ai-processing.png` | AI steps: save → transcribe → summarise → compare with projects → draft |
+| `07-review.png` | Review: assigned project with reason, editable fields, follow-up draft |
+| `08-saved.png` | Saved; everyone at this event, Notion sync noted as Phase 2 |
+| `09-projects.png` | The user's own projects the AI matches against; add a project |
+| `10-dashboard.png` | Contacts dashboard: stats, filters, sorting, stages |
 
 The screenshots come from the clickable prototype (demo data, AI output simulated). The live demo on Day 4 must use real AI calls.

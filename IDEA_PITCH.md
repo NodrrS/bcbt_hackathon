@@ -1,6 +1,7 @@
 # Idea Pitch — due Fri 23 Oct, 13:00
 
 > Freeze at **12:45**, one dry run, then pitch. Acceptance criteria: [ACCEPTANCE_CRITERIA.md § M1](ACCEPTANCE_CRITERIA.md).
+> **Update 23 Oct, after the pitch:** Phase 1 stores contacts and projects in Supabase (with an event picker, typed or voice notes and a contacts dashboard); Notion sync moves to Phase 2. See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) and [docs/DATA_MODEL.md](docs/DATA_MODEL.md). The answers below are the pitch as given.
 > ⚠️ = hypothesis, not yet backed by a conversation. Replace with real numbers from interviews before 12:45.
 
 | # | Question | Our answer | Owner |

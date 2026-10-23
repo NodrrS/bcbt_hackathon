@@ -115,35 +115,55 @@ Mapped to the judging weights:
 
 ---
 
-## P — Product acceptance criteria (fill after M1)
+## P — Product acceptance criteria (Phase 1)
 
-> Draft for the networking-contacts idea ([IDEA_PITCH.md](IDEA_PITCH.md)). One user · one task · one screen.
+> Phase 1 stores everything in Supabase; Notion / notes-app sync is Phase 2. Screens: [prototype/](prototype/) · schema: [supabase/migrations/0001_phase1_schema.sql](supabase/migrations/0001_phase1_schema.sql) · build map: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
-**P-1 Capture a contact**
-- Given a freelancer at an event with the app open on their phone
-- When they scan a LinkedIn or Xing profile QR code
-- Then the profile URL is saved as a new contact within 3 s
+**P-1 Choose, create or edit the event**
+- Given a freelancer opening the app with no active event
+- When they pick an event, or create one (name, place, date, optional link), or edit the selected event's details
+- Then the event is saved in `events` and **Enter event** opens the event home
+- And an event link that isn't a web address is rejected with a clear message
+
+**P-2 Capture a contact (scan)**
+- Given the user is inside an event
+- When they scan a LinkedIn, Xing or other profile QR code
+- Then within 3 s a `contacts` row exists with `profile_url`, `profile_slug`, a name derived from the slug, `event_id` and `status='captured'`
+- And scanning the same person again at the same event opens the existing row instead of creating a duplicate
 - And no profile data is scraped; only the URL is stored
 
-**P-2 Voice note → structured contact**
+**P-3 Assign a project by hand**
+- Given a contact was just scanned
+- When the user taps one of their projects (or "No project") on the note screen
+- Then `project_id` and `project_set_by='user'` are saved immediately, even if the user skips the note
+- And the AI keeps that project instead of suggesting another
+
+**P-4 Note → structured contact (typed or voice)**
 - Given a captured contact
-- When the user records a voice note of up to 60 s and taps Save
-- Then within 15 s the screen shows: name, role, company, what was discussed (≤ 3 bullets), what they need, next step + date
-- And the AI transcribes and summarises the note; fields it cannot fill are left empty, not invented
-- And the user can edit every field before it is saved
+- When the user writes a note, or records a voice memo of up to 60 s, and taps Process
+- Then within 15 s the review screen shows: name, role, company, summary, what was discussed (≤ 3), what they need, next step + date, follow-up draft
+- And a voice memo is stored in the private `voice-notes` bucket and transcribed into `note_text`
+- And fields the AI cannot fill are left empty, not invented
+- And "Later" keeps the contact on the list with a "Needs a note" badge
 
-**P-3 Match to the user's projects**
-- Given the user has a Notion page listing their projects / goals
-- When a contact is summarised
-- Then the AI names the single best-fitting project (or "none") with a one-line reason that quotes the conversation
+**P-5 Match to the user's projects**
+- Given the user's projects are stored in `projects` (added in the Projects tab)
+- When a contact is processed and no project was picked by hand
+- Then the AI suggests the single best-fitting project (or none) with a one-line reason that quotes the note, and `project_set_by='ai'`
 
-**P-4 Write to Notion**
-- Given the user confirms the contact
-- Then a row appears in their Notion "Contacts" database with profile link, event, summary, matched project, next step, and a drafted follow-up message
+**P-6 Review and save**
+- Given the review screen
+- When the user edits any field, changes the project, and taps Save
+- Then the row is updated with the edits and `status='saved'`
 - And nothing is sent to the contact automatically
 
-**P-5 Error handling**
-- Given the AI call or Notion write fails or times out, when the user saves, then a clear message is shown and the recording and fields are kept for retry.
+**P-7 Error handling**
+- Given the AI call fails or times out, when the user processes a note, then a clear message and Retry are shown, the row gets `status='error'`, and the note and recording are kept.
 
-**P-6 Data**
-- Given any demo, then only invented personas and fake profile URLs are used, and no API key appears client-side.
+**P-8 Dashboard**
+- Given saved and captured contacts from several events
+- When the user searches, filters (project, event, due date, capture status, source, stage) and sorts (next follow-up, recently met, name, project, stage)
+- Then the list updates immediately and every field, the stage and personal notes can be edited and are saved to the same row the phone app uses
+
+**P-9 Data**
+- Given any demo, then only invented personas, fictional companies and fake profile URLs are used, every user only sees their own rows (RLS), and no API key appears client-side.
