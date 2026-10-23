@@ -117,17 +117,33 @@ Mapped to the judging weights:
 
 ## P — Product acceptance criteria (fill after M1)
 
-> Template — one block per user-facing capability. Keep to the one-task scope.
+> Draft for the networking-contacts idea ([IDEA_PITCH.md](IDEA_PITCH.md)). One user · one task · one screen.
 
-**P-1 `<capability name>`**
-- Given `<user role>` with `<input / context>`
-- When `<action>`
-- Then `<observable result>` within `<time>`
-- And the AI `<reads / sorts / drafts / searches / summarises>` `<what>`
-- And `<user stays in control: e.g. reviews before sending>`
+**P-1 Capture a contact**
+- Given a freelancer at an event with the app open on their phone
+- When they scan a LinkedIn or Xing profile QR code
+- Then the profile URL is saved as a new contact within 3 s
+- And no profile data is scraped; only the URL is stored
 
-**P-2 Error handling**
-- Given the AI call fails or times out, when the user submits, then a clear message is shown and no data is lost.
+**P-2 Voice note → structured contact**
+- Given a captured contact
+- When the user records a voice note of up to 60 s and taps Save
+- Then within 15 s the screen shows: name, role, company, what was discussed (≤ 3 bullets), what they need, next step + date
+- And the AI transcribes and summarises the note; fields it cannot fill are left empty, not invented
+- And the user can edit every field before it is saved
 
-**P-3 Data**
-- Given any demo, then only fake / open data is used and no API key appears client-side.
+**P-3 Match to the user's projects**
+- Given the user has a Notion page listing their projects / goals
+- When a contact is summarised
+- Then the AI names the single best-fitting project (or "none") with a one-line reason that quotes the conversation
+
+**P-4 Write to Notion**
+- Given the user confirms the contact
+- Then a row appears in their Notion "Contacts" database with profile link, event, summary, matched project, next step, and a drafted follow-up message
+- And nothing is sent to the contact automatically
+
+**P-5 Error handling**
+- Given the AI call or Notion write fails or times out, when the user saves, then a clear message is shown and the recording and fields are kept for retry.
+
+**P-6 Data**
+- Given any demo, then only invented personas and fake profile URLs are used, and no API key appears client-side.

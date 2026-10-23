@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Syncy prototype</title>
+<!--
+  Clickable frontend prototype for the idea pitch (see ../IDEA_PITCH.md).
+  Everything is demo data: invented people, fake profile URLs, simulated AI output.
+  The real build replaces simulateAI() with a model call and saveToNotion() with the Notion API.
+-->
+<style>
+:root {
+  --bg: #f3efe9;
+  --phone: #fffdf9;
+  --ink: #1f1b17;
+  --muted: #71695f;
+  --line: #ebe3d8;
+  --card: #ffffff;
+  --accent: #e4602a;
+  --accent-2: #f3a33f;
+  --accent-soft: #fdede3;
+  --ok: #2c8a57;
+  --ok-soft: #e4f3ea;
+  --linkedin: #0a66c2;
+  --xing: #026466;
+  --shadow: 0 1px 2px rgba(40, 28, 16, .06), 0 6px 18px rgba(40, 28, 16, .07);
+  --radius: 16px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+  display: flex; align-items: center; justify-content: center; gap: 48px;
+  padding: 24px;
+}
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+input, textarea, select { font: inherit; color: inherit; }
+
+/* ---------- desktop side panel ---------- */
+.side { max-width: 300px; }
+.side h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: -.02em; }
+.side p { color: var(--muted); margin: 0 0 18px; }
+.side ol { padding: 0; margin: 0 0 20px; list-style: none; counter-reset: s; }
+.side li { counter-increment: s; display: flex; gap: 10px; align-items: baseline; padding: 6px 0; color: var(--muted); }
+.side li::before { content: counter(s); width: 22px; height: 22px; flex: none; border-radius: 50%; background: var(--line); color: var(--ink); font-size: 12px; font-weight: 600; display: grid; place-items: center; transform: translateY(4px); }
+.side li.on { color: var(--ink); font-weight: 600; }
+.side li.on::before { background: var(--accent); color: #fff; }
+.side .note { font-size: 13px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; color: var(--muted); }
+
+/* ---------- phone frame ---------- */
+.phone {
+  width: 390px; height: 844px; max-height: calc(100vh - 48px);
+  background: var(--phone); border-radius: 46px; overflow: hidden;
+  box-shadow: 0 0 0 11px #1f1b17, 0 30px 70px rgba(0, 0, 0, .28);
+  display: flex; flex-direction: column; position: relative;
+}
+@media (max-width: 760px) {
+  body { padding: 0; display: block; }
+  .side { display: none; }
+  .phone { width: 100%; height: 100dvh; max-height: none; border-radius: 0; box-shadow: none; }
+}
+.statusbar { height: 44px; flex: none; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 28px 6px; font-size: 14px; font-weight: 600; }
+.demo-banner { flex: none; margin: 0 16px; font-size: 11.5px; text-align: center; color: var(--muted); background: #f6f1ea; border-radius: 999px; padding: 3px 10px; }
+.screen { flex: 1; overflow-y: auto; padding: 14px 18px 24px; scrollbar-width: none; }
+.screen::-webkit-scrollbar { display: none; }
+.screen.dark { background: #15120f; color: #fff; }
+
+/* ---------- tab bar ---------- */
+.tabbar { flex: none; display: flex; border-top: 1px solid var(--line); padding: 8px 8px 22px; background: var(--phone); }
+.tabbar button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: var(--muted); padding: 4px 0; }
+.tabbar button.on { color: var(--accent); font-weight: 600; }
+.tabbar svg { width: 24px; height: 24px; }
+
+/* ---------- common ---------- */
+.top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 20px; letter-spacing: -.02em; }
+.logo { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffd27a, var(--accent-2) 45%, var(--accent) 100%); box-shadow: 0 0 14px rgba(243, 163, 63, .6); }
+.title { font-size: 24px; font-weight: 700; letter-spacing: -.02em; margin: 4px 0 4px; }
+.sub { color: var(--muted); margin: 0 0 16px; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); }
+.section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 22px 0 8px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; border-radius: 14px; font-weight: 600; background: #f1ebe3; }
+.btn-primary { background: linear-gradient(135deg, var(--accent), #ef7d33); color: #fff; box-shadow: 0 6px 16px rgba(228, 96, 42, .3); }
+.btn-block { width: 100%; }
+.btn:disabled { opacity: .45; cursor: default; }
+.icon-btn { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: #f1ebe3; font-size: 16px; }
+.dark .icon-btn { background: rgba(255, 255, 255, .12); color: #fff; }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--accent-soft); color: #a8431a; white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.grey { background: #f1ebe3; color: var(--muted); }
+.src { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 4px; color: #fff; font-size: 11px; font-weight: 800; flex: none; }
+.src.li { background: var(--linkedin); }
+.src.xi { background: var(--xing); }
+.avatar { width: 42px; height: 42px; border-radius: 50%; flex: none; display: grid; place-items: center; color: #fff; font-weight: 700; }
+
+/* ---------- today ---------- */
+.event { display: flex; gap: 12px; align-items: center; background: linear-gradient(135deg, #2a221b, #3d2c20); color: #fff; border-radius: var(--radius); padding: 14px; }
+.event .dot { width: 10px; height: 10px; border-radius: 50%; background: #5be38f; box-shadow: 0 0 0 4px rgba(91, 227, 143, .25); flex: none; }
+.event small { color: #d9c9b8; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
+.stat b { display: block; font-size: 22px; letter-spacing: -.02em; }
+.stat span { font-size: 11.5px; color: var(--muted); line-height: 1.25; display: block; }
+.scan-cta { margin-top: 14px; width: 100%; display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 20px; color: #fff; text-align: left; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 10px 24px rgba(228, 96, 42, .32); }
+.scan-cta svg { width: 40px; height: 40px; flex: none; }
+.scan-cta b { font-size: 17px; display: block; }
+.scan-cta small { opacity: .9; }
+.person { display: flex; gap: 12px; align-items: flex-start; padding: 12px; margin-bottom: 8px; width: 100%; text-align: left; }
+.person .meta { flex: 1; min-width: 0; }
+.person .name { font-weight: 650; display: flex; align-items: center; gap: 6px; }
+.person .role { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.person .next { font-size: 13px; margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+.empty { text-align: center; color: var(--muted); padding: 22px 10px; border: 1.5px dashed var(--line); border-radius: var(--radius); }
+
+/* ---------- scan ---------- */
+.flowbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.flowbar .step { font-size: 13px; color: var(--muted); }
+.dark .flowbar .step { color: #bfb3a6; }
+.viewfinder { position: relative; width: 250px; height: 250px; margin: 18px auto 16px; border-radius: 24px; background: radial-gradient(circle, #2c2620, #15120f 75%); display: grid; place-items: center; overflow: hidden; }
+.viewfinder .corner { position: absolute; width: 38px; height: 38px; border: 4px solid #fff; }
+.viewfinder .tl { top: 12px; left: 12px; border-right: 0; border-bottom: 0; border-radius: 14px 0 0 0; }
+.viewfinder .tr { top: 12px; right: 12px; border-left: 0; border-bottom: 0; border-radius: 0 14px 0 0; }
+.viewfinder .bl { bottom: 12px; left: 12px; border-right: 0; border-top: 0; border-radius: 0 0 0 14px; }
+.viewfinder .br { bottom: 12px; right: 12px; border-left: 0; border-top: 0; border-radius: 0 0 14px 0; }
+.viewfinder .line { position: absolute; left: 24px; right: 24px; height: 2px; background: var(--accent-2); box-shadow: 0 0 12px var(--accent-2); animation: scan 2s ease-in-out infinite; }
+@keyframes scan { 0%, 100% { top: 30px; } 50% { top: 218px; } }
+.viewfinder .qr { width: 150px; height: 150px; border-radius: 8px; opacity: .2; filter: blur(2px); transition: all .35s; }
+.viewfinder.hit .qr { opacity: 1; filter: none; }
+.viewfinder.hit .line { display: none; }
+.viewfinder.hit .corner { border-color: #5be38f; }
+.detected { text-align: center; min-height: 54px; }
+.detected .ok { color: #5be38f; font-weight: 700; }
+.detected code { font-size: 13px; color: #e8dccf; }
+.demo-pick { background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .12); border-radius: var(--radius); padding: 12px; margin-top: 8px; }
+.demo-pick p { margin: 0 0 8px; font-size: 12.5px; color: #bfb3a6; }
+.chip { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border-radius: 12px; background: rgba(255, 255, 255, .08); color: #fff; margin-top: 6px; text-align: left; }
+.chip:hover:not(:disabled) { background: rgba(255, 255, 255, .16); }
+.chip:disabled { opacity: .4; cursor: default; }
+.chip .avatar { width: 30px; height: 30px; font-size: 12px; }
+.chip small { color: #bfb3a6; display: block; font-size: 12px; }
+.alt { display: block; margin: 14px auto 0; color: #bfb3a6; font-size: 13px; text-decoration: underline; }
+
+/* ---------- record ---------- */
+.linkchip { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: #f6f1ea; font-size: 13px; }
+.linkchip code { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prompts { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 6px; }
+.prompts span { font-size: 12.5px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.mic-wrap { display: flex; flex-direction: column; align-items: center; margin: 18px 0 8px; }
+.mic { width: 96px; height: 96px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 10px 26px rgba(228, 96, 42, .35); position: relative; }
+.mic svg { width: 38px; height: 38px; }
+.mic.rec { background: #d93a2b; animation: pulse 1.4s ease-out infinite; }
+.mic.rec .stopicon { width: 30px; height: 30px; border-radius: 6px; background: #fff; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(217, 58, 43, .45); } 100% { box-shadow: 0 0 0 26px rgba(217, 58, 43, 0); } }
+.timer { font-variant-numeric: tabular-nums; font-weight: 600; margin-top: 10px; }
+.wave { display: flex; gap: 3px; align-items: center; height: 34px; margin-top: 6px; }
+.wave i { width: 4px; border-radius: 2px; background: var(--accent); height: 6px; transition: height .12s; }
+.transcript { min-height: 96px; font-size: 14.5px; }
+.transcript .caret { display: inline-block; width: 2px; height: 1em; background: var(--accent); vertical-align: -2px; animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+textarea.edit, input.edit, select.edit { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: #fff; resize: vertical; }
+textarea.edit:focus, input.edit:focus, select.edit:focus { outline: 2px solid var(--accent-2); border-color: transparent; }
+.row { display: flex; gap: 8px; }
+.row > * { flex: 1; }
+
+/* ---------- processing ---------- */
+.proc { display: flex; flex-direction: column; align-items: center; padding-top: 50px; }
+.orb { width: 110px; height: 110px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffe2a6, var(--accent-2) 45%, var(--accent) 100%); animation: glow 1.6s ease-in-out infinite alternate; }
+@keyframes glow { from { box-shadow: 0 0 20px rgba(243, 163, 63, .4); transform: scale(.96); } to { box-shadow: 0 0 60px rgba(243, 163, 63, .8); transform: scale(1.04); } }
+.steps { list-style: none; padding: 0; margin: 30px 0 0; width: 100%; }
+.steps li { display: flex; align-items: center; gap: 12px; padding: 10px 4px; color: var(--muted); }
+.steps li .ic { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); flex: none; display: grid; place-items: center; font-size: 12px; }
+.steps li.doing { color: var(--ink); font-weight: 600; }
+.steps li.doing .ic { border-color: var(--accent); border-top-color: transparent; animation: spin .8s linear infinite; }
+.steps li.done { color: var(--ink); }
+.steps li.done .ic { background: var(--ok); border-color: var(--ok); color: #fff; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- review ---------- */
+.who { display: flex; gap: 12px; align-items: center; }
+.who .avatar { width: 54px; height: 54px; font-size: 18px; }
+.who input { border: 0; padding: 0; background: transparent; width: 100%; }
+.who .n { font-size: 19px; font-weight: 700; }
+.who .r { color: var(--muted); font-size: 13.5px; }
+.field-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 16px 0 6px; display: flex; justify-content: space-between; align-items: center; }
+.field-label .ai { text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--accent); }
+ul.bul { margin: 0; padding-left: 18px; }
+ul.bul li { margin: 3px 0; }
+.match { border: 1.5px solid var(--accent-2); background: linear-gradient(180deg, #fff8ef, #fff); border-radius: var(--radius); padding: 14px; margin-top: 16px; }
+.match .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.match .proj { font-weight: 700; font-size: 16px; }
+.match blockquote { margin: 8px 0 0; padding-left: 10px; border-left: 3px solid var(--accent-2); color: var(--muted); font-style: italic; font-size: 14px; }
+.match select { margin-top: 10px; }
+.footer { position: sticky; bottom: -24px; margin: 18px -18px -24px; padding: 12px 18px 18px; background: linear-gradient(180deg, rgba(255, 253, 249, 0), var(--phone) 30%); }
+.copy { font-size: 12.5px; font-weight: 600; color: var(--accent); }
+
+/* ---------- saved / notion ---------- */
+.success { text-align: center; padding: 16px 0 6px; }
+.success .check { width: 64px; height: 64px; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center; margin: 0 auto 10px; font-size: 30px; animation: pop .4s ease-out; }
+@keyframes pop { from { transform: scale(.4); opacity: 0; } }
+.notion { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fff; font-family: ui-sans-serif, -apple-system, "Segoe UI", sans-serif; }
+.notion .bar { display: flex; align-items: center; gap: 6px; padding: 8px 10px; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line); background: #fbfaf8; }
+.notion .bar .n-logo { width: 16px; height: 16px; border: 1.5px solid #222; border-radius: 3px; font-size: 10px; font-weight: 800; display: grid; place-items: center; color: #222; }
+.notion h3 { margin: 10px 12px 6px; font-size: 16px; }
+.ntable { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ntable th { text-align: left; font-weight: 500; color: var(--muted); padding: 6px 8px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ntable td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ntable tr.new td { background: #fff4e3; animation: flash 1.6s ease-out; }
+@keyframes flash { from { background: #ffd9a0; } }
+.ntag { display: inline-block; padding: 1px 6px; border-radius: 4px; background: #f1ebe3; white-space: nowrap; }
+
+/* ---------- projects ---------- */
+.proj-card { margin-bottom: 10px; }
+.proj-card .ph { display: flex; gap: 10px; align-items: center; font-weight: 700; }
+.proj-card .emoji { width: 36px; height: 36px; border-radius: 10px; background: #f6f1ea; display: grid; place-items: center; font-size: 18px; }
+.proj-card .goal { color: var(--muted); font-size: 13.5px; margin: 6px 0 8px; }
+.faces { display: flex; gap: 6px; flex-wrap: wrap; }
+.connected { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+.connected .n-logo { width: 18px; height: 18px; border: 1.5px solid #222; border-radius: 4px; font-size: 11px; font-weight: 800; display: grid; place-items: center; color: #222; }
+</style>
+</head>
+<body>
+
+<aside class="side">
+  <div class="brand" style="margin-bottom:14px"><span class="logo"></span><span id="sideName"></span></div>
+  <h1>From "who was that?" to a next step.</h1>
+  <p>Clickable prototype for the BCBT idea pitch. Walk through one contact:</p>
+  <ol id="sideSteps">
+    <li data-s="scan">Scan their LinkedIn / Xing QR</li>
+    <li data-s="record">Record a 20-second voice note</li>
+    <li data-s="processing">AI summarises and matches to your projects</li>
+    <li data-s="review">Review and edit, nothing is sent</li>
+    <li data-s="saved">Saved to your Notion</li>
+  </ol>
+  <div class="note">Demo data only: invented people and fake profile URLs. AI output is simulated here; the real build calls the model.</div>
+  <p style="margin-top:14px"><button class="btn" onclick="resetDemo()">↺ Reset demo</button></p>
+</aside>
+
+<div class="phone">
+  <div class="statusbar"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+  <div class="demo-banner">Prototype · demo data · AI output simulated</div>
+  <main class="screen" id="screen"></main>
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<script>
+const APP_NAME = 'Syncy';
+
+const EVENT = { name: 'BCBT AI Hackathon', place: 'CIC Berlin', date: 'Fri 23 Oct' };
+
+// The user's own projects, as they would be read from their Notion page.
+const PROJECTS = [
+  { id: 'p1', emoji: '💼', name: 'Client work: React dashboards', goal: 'Land 2 new freelance clients for Q1 (React / data dashboards).' },
+  { id: 'p2', emoji: '🚀', name: 'Co-founder search: HR-tech', goal: 'Find a sales-minded co-founder for an employee onboarding tool.' },
+  { id: 'p3', emoji: '🎤', name: 'Speaking & visibility', goal: 'Get one meetup talk slot in Berlin this winter.' },
+];
+
+// Invented people. Profile URLs are fake.
+const PERSONAS = [
+  {
+    id: 'lena', source: 'LinkedIn', url: 'linkedin.com/in/lena-hoffmann-demo',
+    name: 'Lena Hoffmann', role: 'Head of Procurement', company: 'Nordlicht Logistics',
+    transcript: "Lena, head of procurement at Nordlicht Logistics. They're rebuilding their warehouse KPI dashboard and need a React freelancer from January, budget is already approved. She asked me to send a short portfolio, and I said I'd call her next Tuesday.",
+    ai: {
+      discussed: ['Nordlicht is rebuilding its warehouse KPI dashboard', 'Budget for an external developer is approved', 'Start date: January'],
+      need: 'A React freelancer for the dashboard rebuild, from January.',
+      project: 'p1', confidence: 'High',
+      reason: 'She has an approved budget for exactly the kind of React dashboard work you want for Q1.',
+      quote: 'need a React freelancer from January, budget is already approved',
+      next: 'Send portfolio, then call her', due: 'Tue 27 Oct',
+      followup: "Hi Lena, great talking at the BCBT hackathon about Nordlicht's warehouse dashboard. As promised, here is my portfolio with two similar KPI dashboards I built in React. Would Tuesday at 10:00 work for a quick call?",
+    },
+  },
+  {
+    id: 'jonas', source: 'Xing', url: 'xing.com/profile/Jonas_Weber_demo',
+    name: 'Jonas Weber', role: 'Sales lead (ex-Personio-style SaaS)', company: 'Looking for next step',
+    transcript: "Jonas, he sold HR software to mid-size companies for six years and just left his job. He's looking for an early-stage HR-tech startup to join as a co-founder. We talked about onboarding being a mess everywhere. He wants to see my prototype, coffee next week.",
+    ai: {
+      discussed: ['Six years selling HR software to mid-size companies', 'Just left his job, looking to co-found', 'Agrees onboarding is a common pain'],
+      need: 'An early-stage HR-tech startup to join as co-founder.',
+      project: 'p2', confidence: 'High',
+      reason: 'He is the sales-minded HR-tech co-founder profile your project is looking for.',
+      quote: 'looking for an early-stage HR-tech startup to join as a co-founder',
+      next: 'Show him the prototype over coffee', due: 'Thu 29 Oct',
+      followup: "Hi Jonas, really enjoyed our chat about onboarding chaos at the BCBT hackathon. I'd love to show you the prototype. Does coffee on Thursday near Görlitzer Park work for you?",
+    },
+  },
+  {
+    id: 'aylin', source: 'LinkedIn', url: 'linkedin.com/in/aylin-demir-demo',
+    name: 'Aylin Demir', role: 'Organiser', company: 'Berlin Frontend Meetup',
+    transcript: "Aylin runs the Berlin Frontend Meetup. They still have open speaker slots in December, she liked the idea of a talk about building dashboards fast. Send her a title and two sentences by Friday.",
+    ai: {
+      discussed: ['She organises the Berlin Frontend Meetup', 'Open speaker slots in December', 'Liked a talk on building dashboards fast'],
+      need: 'Speakers for the December meetup.',
+      project: 'p3', confidence: 'High',
+      reason: 'Direct path to the Berlin talk slot you want this winter.',
+      quote: 'still have open speaker slots in December',
+      next: 'Send talk title + abstract', due: 'Fri 30 Oct',
+      followup: "Hi Aylin, thanks for the chat today! Talk idea for December: \"Shipping a data dashboard in a weekend\": how to go from a messy spreadsheet to a React dashboard people actually use. Happy to adjust to your audience.",
+    },
+  },
+];
+
+const COLORS = ['#e4602a', '#2c8a57', '#0a66c2', '#8b4fc9', '#c2410c', '#0f766e'];
+
+let state;
+function resetDemo() {
+  const a = PERSONAS.find(p => p.id === 'aylin');
+  state = {
+    tab: 'today', screen: 'today',
+    // One contact saved earlier today so the lists aren't empty.
+    contacts: [{ ...a, ...a.ai, ai: undefined, savedAt: '11:05', isNew: false }],
+    current: null, draft: null, viewing: null,
+    rec: { status: 'idle', secs: 0, words: 0 },
+  };
+  clearTimers();
+  render();
+}
+
+// ---------- helpers ----------
+let timers = [];
+function later(fn, ms) { const t = setTimeout(fn, ms); timers.push(t); return t; }
+function every(fn, ms) { const t = setInterval(fn, ms); timers.push(t); return t; }
+function clearTimers() { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers = []; }
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const proj = id => PROJECTS.find(p => p.id === id);
+function initials(name) { return name.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(); }
+function color(name) { let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0; return COLORS[h % COLORS.length]; }
+function avatar(name, size) {
+  const st = size ? `width:${size}px;height:${size}px;font-size:${Math.round(size * .36)}px;` : '';
+  return `<span class="avatar" style="background:${color(name)};${st}">${esc(initials(name))}</span>`;
+}
+function srcBadge(source) { return source === 'Xing' ? '<span class="src xi">X</span>' : '<span class="src li">in</span>'; }
+function now() { const d = new Date(); return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
+
+function qrSvg(seed) {
+  let s = 7; for (const c of seed) s = (s * 31 + c.charCodeAt(0)) >>> 0;
+  const rnd = () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
+  const inFinder = (x, y) => (x < 8 && y < 8) || (x > 12 && y < 8) || (x < 8 && y > 12);
+  const finder = (x, y) => `<rect x="${x}" y="${y}" width="7" height="7"/><rect x="${x + 1}" y="${y + 1}" width="5" height="5" fill="#fff"/><rect x="${x + 2}" y="${y + 2}" width="3" height="3"/>`;
+  let cells = '';
+  for (let y = 0; y < 21; y++) for (let x = 0; x < 21; x++) if (!inFinder(x, y) && rnd() < .5) cells += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
+  return `<svg class="qr" viewBox="-1.5 -1.5 24 24"><rect x="-1.5" y="-1.5" width="24" height="24" fill="#fff"/><g fill="#111">${finder(0, 0)}${finder(14, 0)}${finder(0, 14)}${cells}</g></svg>`;
+}
+
+const ICONS = {
+  today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  contacts: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.9.7 3.1 2.4 3.5 5.2"/></svg>',
+  projects: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18M8 14h4M8 17h7"/></svg>',
+  qr: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg>',
+  mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5"/></svg>',
+};
+
+// ---------- navigation ----------
+function go(screen) {
+  clearTimers();
+  if (['today', 'contacts', 'projects'].includes(screen)) state.tab = screen;
+  state.screen = screen;
+  render();
+  document.getElementById('screen').scrollTop = 0;
+}
+
+function render() {
+  const el = document.getElementById('screen');
+  const flow = ['scan', 'record', 'processing', 'review', 'saved', 'detail'].includes(state.screen);
+  el.className = 'screen' + (state.screen === 'scan' ? ' dark' : '');
+  el.innerHTML = SCREENS[state.screen]();
+  document.getElementById('tabbar').style.display = flow ? 'none' : 'flex';
+  document.getElementById('tabbar').innerHTML = [['today', 'Today'], ['contacts', 'Contacts'], ['projects', 'Projects']]
+    .map(([id, label]) => `<button class="${state.tab === id ? 'on' : ''}" onclick="go('${id}')">${ICONS[id]}${label}</button>`).join('');
+  document.querySelectorAll('#sideSteps li').forEach(li => li.classList.toggle('on', li.dataset.s === state.screen));
+  AFTER[state.screen]?.();
+}
+
+// ---------- screens ----------
+function personRow(c) {
+  const p = proj(c.project);
+  return `<button class="card person" onclick="openDetail('${c.id}')">
+    ${avatar(c.name)}
+    <div class="meta">
+      <div class="name">${esc(c.name)} ${srcBadge(c.source)}</div>
+      <div class="role">${esc(c.role)} · ${esc(c.company)}</div>
+      <div class="next">${p ? `<span class="pill">${p.emoji} ${esc(p.name)}</span>` : '<span class="pill grey">No project match</span>'}
+        <span class="pill grey">→ ${esc(c.next)} · ${esc(c.due)}</span></div>
+    </div></button>`;
+}
+
+const SCREENS = {
+  today() {
+    const n = state.contacts.length;
+    const linked = state.contacts.filter(c => c.project).length;
+    return `
+      <div class="top"><div class="brand"><span class="logo"></span>${APP_NAME}</div><span class="icon-btn">⚙︎</span></div>
+      <div class="event"><span class="dot"></span><div>You're at <b>${EVENT.name}</b><br><small>${EVENT.place} · ${EVENT.date}</small></div></div>
+      <div class="stats">
+        <div class="stat"><b>${n}</b><span>people met today</span></div>
+        <div class="stat"><b>${linked}</b><span>linked to your projects</span></div>
+        <div class="stat"><b>${n}</b><span>follow-ups this week</span></div>
+      </div>
+      <button class="scan-cta" onclick="go('scan')">${ICONS.qr}<span><b>Scan someone's QR</b><small>LinkedIn · Xing · then a 20-s voice note</small></span></button>
+      <div class="section-title">People you met today</div>
+      ${n ? state.contacts.slice().reverse().map(personRow).join('') : '<div class="empty">Nobody yet. Scan the first QR code.</div>'}`;
+  },
+
+  contacts() {
+    const groups = PROJECTS.map(p => ({ p, list: state.contacts.filter(c => c.project === p.id) }));
+    const none = state.contacts.filter(c => !c.project);
+    return `
+      <div class="title">Contacts</div>
+      <p class="sub">Grouped by the project they matter for.</p>
+      ${groups.map(g => `<div class="section-title">${g.p.emoji} ${esc(g.p.name)} · ${g.list.length}</div>
+        ${g.list.length ? g.list.map(personRow).join('') : '<div class="empty small">No one yet</div>'}`).join('')}
+      ${none.length ? `<div class="section-title">No project match · ${none.length}</div>${none.map(personRow).join('')}` : ''}`;
+  },
+
+  projects() {
+    return `
+      <div class="title">Your projects</div>
+      <div class="connected"><span class="n-logo">N</span> Read from Notion page <b>"My goals 2026"</b> (demo)</div>
+      ${PROJECTS.map(p => {
+        const list = state.contacts.filter(c => c.project === p.id);
+        return `<div class="card proj-card">
+          <div class="ph"><span class="emoji">${p.emoji}</span>${esc(p.name)}</div>
+          <div class="goal">${esc(p.goal)}</div>
+          <div class="faces">${list.length ? list.map(c => `<span class="pill grey">${esc(c.name)}</span>`).join('') : '<span class="muted small">No contacts yet</span>'}</div>
+        </div>`;
+      }).join('')}
+      <p class="muted small">The AI reads these goals and decides which one each new contact is relevant for.</p>`;
+  },
+
+  scan() {
+    const taken = new Set(state.contacts.map(c => c.id));
+    const cur = state.current;
+    return `
+      <div class="flowbar"><button class="icon-btn" onclick="go('today')">✕</button><span class="step">Step 1 of 3 · Scan</span><span style="width:36px"></span></div>
+      <div class="viewfinder ${cur ? 'hit' : ''}" id="vf">
+        ${qrSvg(cur ? cur.url : 'placeholder')}
+        <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+        <span class="line"></span>
+      </div>
+      <div class="detected">${cur
+        ? `<div class="ok">✓ ${cur.source} profile detected</div><code>${esc(cur.url)}</code>`
+        : '<div>Point the camera at their LinkedIn or Xing QR code</div>'}</div>
+      <div class="demo-pick">
+        <p>Demo: no camera in the prototype. Tap a person to simulate a scan.</p>
+        ${PERSONAS.map(p => `<button class="chip" ${taken.has(p.id) || cur ? 'disabled' : ''} onclick="scanned('${p.id}')">
+          ${avatar(p.name)}<span style="flex:1">${esc(p.name)}<small>${taken.has(p.id) ? 'Already saved today' : esc(p.url)}</small></span>${srcBadge(p.source)}</button>`).join('')}
+      </div>
+      <button class="alt" disabled>Take a photo of their badge instead</button>`;
+  },
+
+  record() {
+    const c = state.current, r = state.rec;
+    const done = r.status === 'done';
+    return `
+      <div class="flowbar"><button class="icon-btn" onclick="go('today')">✕</button><span class="step">Step 2 of 3 · Voice note</span><span style="width:36px"></span></div>
+      <div class="linkchip">${srcBadge(c.source)}<code>${esc(c.url)}</code><span class="pill ok">✓ saved</span></div>
+      <p class="muted small" style="margin:6px 2px 0">We keep the link only. No profile data is scraped.</p>
+      <div class="title" style="margin-top:16px">What did you talk about?</div>
+      <div class="prompts"><span>Who are they?</span><span>What do they need?</span><span>What did you agree?</span></div>
+      ${done ? '' : `
+      <div class="mic-wrap">
+        <button class="mic ${r.status === 'recording' ? 'rec' : ''}" id="mic" onclick="toggleRec()">${r.status === 'recording' ? '<span class="stopicon"></span>' : ICONS.mic}</button>
+        <div class="timer" id="timer">${r.status === 'recording' ? '0:00' : 'Tap to record'}</div>
+        <div class="wave" id="wave">${'<i></i>'.repeat(28)}</div>
+      </div>`}
+      <div class="card transcript" id="transcript">${done
+        ? `<div class="field-label" style="margin-top:0">Transcript <span class="ai">edit if needed</span></div>
+           <textarea class="edit" rows="6" id="tx">${esc(c.transcript)}</textarea>`
+        : `<span class="muted" id="txlive">${r.status === 'recording' ? '' : 'Your words appear here as you speak.'}</span>${r.status === 'recording' ? '<span class="caret"></span>' : ''}`}
+      </div>
+      ${done ? `<div class="row" style="margin-top:14px">
+          <button class="btn" style="flex:0 0 auto" onclick="rerecord()">↺ Re-record</button>
+          <button class="btn btn-primary" onclick="process()">✨ Process with AI</button></div>` : ''}`;
+  },
+
+  processing() {
+    return `
+      <div class="proc">
+        <div class="orb"></div>
+        <div class="title" style="margin-top:22px">Working on it…</div>
+        <div class="muted small">${esc(state.current.name)} · about 5 seconds</div>
+        <ul class="steps" id="steps">
+          ${PROC_STEPS.map(s => `<li><span class="ic"></span>${s}</li>`).join('')}
+        </ul>
+      </div>`;
+  },
+
+  review() {
+    const d = state.draft;
+    const p = proj(d.project);
+    return `
+      <div class="flowbar"><button class="icon-btn" onclick="go('record')">‹</button><span class="step">Step 3 of 3 · Review</span><span style="width:36px"></span></div>
+      <div class="who">${avatar(d.name, 54)}
+        <div style="flex:1;min-width:0">
+          <input class="n" value="${esc(d.name)}" oninput="state.draft.name=this.value">
+          <input class="r" value="${esc(d.role)} · ${esc(d.company)}" oninput="setRole(this.value)">
+        </div>${srcBadge(d.source)}</div>
+
+      <div class="match">
+        <div class="head"><span class="muted small">Relevant to your project</span><span class="pill ${d.reasonByUser ? 'grey' : 'ok'}">${d.reasonByUser ? 'Changed by you' : 'AI · ' + esc(d.confidence) + ' fit'}</span></div>
+        <div class="proj">${p ? p.emoji + ' ' + esc(p.name) : 'No matching project'}</div>
+        <div class="small" style="margin-top:4px">${esc(d.reason)}</div>
+        ${d.reasonByUser ? '' : `<blockquote>"${esc(d.quote)}"</blockquote>`}
+        <select class="edit" onchange="changeProject(this.value)">
+          ${PROJECTS.map(x => `<option value="${x.id}" ${x.id === d.project ? 'selected' : ''}>${x.emoji} ${esc(x.name)}</option>`).join('')}
+          <option value="" ${!d.project ? 'selected' : ''}>No project</option>
+        </select>
+      </div>
+
+      <div class="field-label">What you talked about <span class="ai">✨ AI summary</span></div>
+      <div class="card"><ul class="bul">${d.discussed.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
+
+      <div class="field-label">What they need</div>
+      <input class="edit" value="${esc(d.need)}" oninput="state.draft.need=this.value">
+
+      <div class="field-label">Next step</div>
+      <div class="row">
+        <input class="edit" style="flex:2" value="${esc(d.next)}" oninput="state.draft.next=this.value">
+        <input class="edit" value="${esc(d.due)}" oninput="state.draft.due=this.value">
+      </div>
+
+      <div class="field-label">Follow-up draft <button class="copy" onclick="copyFollowup(this)">Copy</button></div>
+      <textarea class="edit" rows="5" oninput="state.draft.followup=this.value">${esc(d.followup)}</textarea>
+      <p class="muted small" style="margin:6px 2px 0">Nothing is sent to ${esc(d.name.split(' ')[0])} automatically.</p>
+
+      <div class="footer"><button class="btn btn-primary btn-block" onclick="saveToNotion(this)">Save to Notion</button></div>`;
+  },
+
+  saved() {
+    const c = state.contacts[state.contacts.length - 1];
+    return `
+      <div class="success"><div class="check">✓</div>
+        <div class="title">Saved to Notion</div>
+        <p class="sub">${esc(c.name)} is now linked to ${proj(c.project) ? '<b>' + esc(proj(c.project).name) + '</b>' : 'your contacts'}.</p></div>
+      ${notionTable(c.id)}
+      <div class="row" style="margin-top:16px">
+        <button class="btn" onclick="go('today')">Done</button>
+        <button class="btn btn-primary" onclick="go('scan')" ${PERSONAS.every(p => state.contacts.some(c => c.id === p.id)) ? 'disabled' : ''}>Scan next person</button>
+      </div>`;
+  },
+
+  detail() {
+    const c = state.contacts.find(x => x.id === state.viewing);
+    const p = proj(c.project);
+    return `
+      <div class="flowbar"><button class="icon-btn" onclick="go(state.tab)">‹</button><span class="step">Met at ${EVENT.name} · ${esc(c.savedAt)}</span><span style="width:36px"></span></div>
+      <div class="who">${avatar(c.name, 54)}<div style="flex:1"><div class="n">${esc(c.name)}</div><div class="r">${esc(c.role)} · ${esc(c.company)}</div></div>${srcBadge(c.source)}</div>
+      <div class="linkchip" style="margin-top:12px">${srcBadge(c.source)}<code>${esc(c.url)}</code></div>
+      <div class="match"><div class="muted small">Relevant to your project</div>
+        <div class="proj">${p ? p.emoji + ' ' + esc(p.name) : 'No matching project'}</div>
+        <div class="small" style="margin-top:4px">${esc(c.reason)}</div></div>
+      <div class="field-label">What you talked about</div>
+      <div class="card"><ul class="bul">${c.discussed.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
+      <div class="field-label">What they need</div><div>${esc(c.need)}</div>
+      <div class="field-label">Next step</div><div><b>${esc(c.next)}</b> · ${esc(c.due)}</div>
+      <div class="field-label">Follow-up draft <button class="copy" onclick="copyText(this, state.contacts.find(x => x.id === state.viewing).followup)">Copy</button></div>
+      <div class="card small">${esc(c.followup)}</div>`;
+  },
+};
+
+function notionTable(newId) {
+  return `<div class="notion">
+    <div class="bar"><span class="n-logo">N</span> Demo workspace / 🤝 Networking contacts</div>
+    <h3>🤝 Networking contacts</h3>
+    <table class="ntable"><thead><tr><th>Name</th><th>Project</th><th>Next step</th></tr></thead><tbody>
+    ${state.contacts.slice().reverse().map(c => `<tr class="${c.id === newId ? 'new' : ''}">
+      <td><b>${esc(c.name)}</b></td>
+      <td>${proj(c.project) ? `<span class="ntag">${proj(c.project).emoji} ${esc(proj(c.project).name.split(':')[0])}</span>` : '<span class="ntag">-</span>'}</td>
+      <td>${esc(c.next)}<br><span class="muted">${esc(c.due)}</span></td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+// ---------- after-render hooks ----------
+const PROC_STEPS = ['Transcribing your voice note', 'Summarising the conversation', 'Reading your projects in Notion (3 found)', 'Matching to the best project', 'Drafting a follow-up message'];
+const AFTER = {
+  processing() {
+    const lis = [...document.querySelectorAll('#steps li')];
+    lis.forEach((li, i) => {
+      later(() => { li.className = 'doing'; }, i * 700);
+      later(() => { li.className = 'done'; li.querySelector('.ic').textContent = '✓'; }, i * 700 + 650);
+    });
+    later(() => { state.draft = simulateAI(state.current); go('review'); }, lis.length * 700 + 300);
+  },
+};
+
+// ---------- actions ----------
+function scanned(id) {
+  state.current = PERSONAS.find(p => p.id === id);
+  state.rec = { status: 'idle', secs: 0, words: 0 };
+  render();
+  later(() => go('record'), 1300);
+}
+
+function toggleRec() {
+  const r = state.rec;
+  if (r.status === 'idle') {
+    r.status = 'recording'; r.secs = 0; r.words = 0;
+    render();
+    const words = state.current.transcript.split(' ');
+    const live = document.getElementById('txlive');
+    live.classList.remove('muted');
+    every(() => {
+      r.secs++;
+      document.getElementById('timer').textContent = '0:' + String(r.secs).padStart(2, '0');
+      if (r.secs >= 60) stopRec();
+    }, 1000);
+    every(() => {
+      if (r.words < words.length) live.textContent = words.slice(0, ++r.words).join(' ');
+      document.querySelectorAll('#wave i').forEach(i => { i.style.height = (6 + Math.random() * 28) + 'px'; });
+    }, 140);
+  } else if (r.status === 'recording') {
+    stopRec();
+  }
+}
+function stopRec() { clearTimers(); state.rec.status = 'done'; render(); }
+function rerecord() { state.rec = { status: 'idle', secs: 0, words: 0 }; render(); }
+
+function process() {
+  const tx = document.getElementById('tx');
+  if (tx) state.current = { ...state.current, transcript: tx.value };
+  go('processing');
+}
+
+// Stand-in for the real model call: transcript + user's projects -> structured contact.
+function simulateAI(person) {
+  return { ...person, ...person.ai, ai: undefined, reasonByUser: false };
+}
+
+function setRole(v) {
+  const [role, ...rest] = v.split(' · ');
+  state.draft.role = role; state.draft.company = rest.join(' · ');
+}
+function changeProject(id) {
+  state.draft.project = id || null;
+  state.draft.reasonByUser = true;
+  state.draft.reason = id ? 'You picked this project yourself.' : 'Not linked to a project. Kept as a general contact.';
+  render();
+}
+
+function copyText(btn, text) {
+  navigator.clipboard?.writeText(text).catch(() => {});
+  btn.textContent = 'Copied ✓';
+  setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+}
+function copyFollowup(btn) { copyText(btn, state.draft.followup); }
+
+// Stand-in for the Notion API write.
+function saveToNotion(btn) {
+  btn.disabled = true; btn.textContent = 'Saving to Notion…';
+  later(() => {
+    state.contacts.push({ ...state.draft, savedAt: now() });
+    state.current = null; state.draft = null;
+    go('saved');
+  }, 700);
+}
+
+function openDetail(id) { state.viewing = id; go('detail'); }
+
+// Jump straight to a screen with Lena's demo data, e.g. index.html#review (used for slide screenshots).
+function jumpTo(screen) {
+  const lena = PERSONAS[0];
+  const saveLena = () => state.contacts.push({ ...simulateAI(lena), savedAt: '12:10' });
+  state.current = lena;
+  if (screen === 'scan') { state.current = null; go('scan'); scanned('lena'); }
+  else if (screen === 'record') { go('record'); toggleRec(); }
+  else if (screen === 'processing') go('processing');
+  else if (screen === 'review') { state.draft = simulateAI(lena); go('review'); }
+  else if (screen === 'saved') { saveLena(); go('saved'); }
+  else if (['today', 'contacts', 'projects'].includes(screen)) { state.current = null; saveLena(); go(screen); }
+}
+
+document.getElementById('sideName').textContent = APP_NAME;
+resetDemo();
+if (location.hash) jumpTo(location.hash.slice(1));
+</script>
+</body>
+</html>

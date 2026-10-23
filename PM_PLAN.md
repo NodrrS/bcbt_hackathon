@@ -5,8 +5,8 @@
 
 | | |
 |---|---|
-| Product name | `TBD` (decide by 13:00 today, max 5 min) |
-| Team name | `TBD` (same as product) |
+| Product name | **Syncy** |
+| Team name | **Syncy** |
 | Direction | `TBD` — New company **or** Inside a company |
 | Mentor | `TBD` |
 | Business mentor | `TBD` (visits on Day 1) |
@@ -128,7 +128,7 @@ Ship **one working product** that a non-builder can use live, solving **one spec
 
 | # | Candidate problem (who / what task) | Weekly? | Quantifiable (h / €)? | Existing workaround? | AI core = read/sort/draft/search/summarise? | Rough version by Day 2 midday? | Score |
 |---|---|---|---|---|---|---|---|
-| 1 | `TBD` | | | | | | /5 |
+| 1 | Freelancer forgets who they met at networking events and what was discussed → lost follow-ups | ⚠️ events 2–4×/month, not weekly — target people who go weekly, or count weekly follow-ups | ✅ ~1 h per event ⚠️ + lost leads | ✅ LinkedIn + notes app + memory | ✅ summarise note, sort to project, draft follow-up | ✅ QR → voice → Notion row | 5/5 ⚠️ |
 | 2 | `TBD` | | | | | | /5 |
 | 3 | `TBD` | | | | | | /5 |
 | 4 | `TBD` | | | | | | /5 |
@@ -136,13 +136,13 @@ Ship **one working product** that a non-builder can use live, solving **one spec
 
 ### "How might we…" (write 5, vote for the one that leads to most ideas)
 
-1. HMW `TBD`
-2. HMW `TBD`
-3. HMW `TBD`
-4. HMW `TBD`
-5. HMW `TBD`
+1. HMW help freelancers remember what they discussed with each person they met at an event?
+2. HMW turn a LinkedIn connection into a next step instead of a name?
+3. HMW connect people met at events to the projects the freelancer is working on?
+4. HMW make capturing a contact faster than typing into a notes app?
+5. HMW make sure no promising contact is forgotten after an event?
 
-Chosen: `TBD` — check it is neither too wide ("help schools with admin") nor too narrow ("build a chatbot for…").
+Chosen: #3 (with #1 as the capture step) — `confirm by team vote` — check it is neither too wide ("help schools with admin") nor too narrow ("build a chatbot for…").
 
 ### User conversations (Mom Test)
 
@@ -254,6 +254,9 @@ User does ──▶ [input] ──▶ AI does <job> ──▶ [output on one scr
 | Date / time | Decision or feedback | By | Impact |
 |---|---|---|---|
 | 23 Oct | Scaffold created | PM | — |
+| 23 Oct | Idea: networking contact capture (QR + voice note → AI summary + project match → Notion) | Team | IDEA_PITCH filled; P-ACs drafted |
+| 23 Oct | Name: **Syncy** (product + team) | Team | Used in pitch, prototype, slides |
+| 23 Oct | No LinkedIn scraping — store profile URL only; Notion only (Drive later); fake personas for demo | Team | Avoids ToS / personal-data risk |
 
 ## 10. Help
 
