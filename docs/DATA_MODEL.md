@@ -129,3 +129,17 @@ So swapping the prototype for the real backend means replacing four functions, n
 | Apple Notes | **No public API**; only on-device via Shortcuts. Realistic option: share/export, not live sync | High / limited |
 
 Design rule for Phase 2: one connector interface per app — `pullProjects()` and `pushContact()` — so adding an app does not touch the screens or the schema.
+
+## 6. One schema, three layers
+
+Same tables, same snake_case column names at every layer (`data.js` mirrors the migration), so each row below means the same thing everywhere. This is the alignment table for the frontend ↔ backend handoff.
+
+| Data | Frontend — phone app + dashboard (Nodir, Bhuvanesh) | Backend — Supabase + endpoint (Utkarsh) | Other — storage · external · ops |
+|---|---|---|---|
+| **Events** | Event picker creates / edits / selects via supabase-js | `events` table; RLS per `user_id` | — |
+| **Projects** | Projects tab lists + adds (name, description, emoji) | `projects` table; the AI matches on `description`; `archived=true` hides from matching | Phase 2: pulled from Notion via `external_source` / `external_id` / `external_updated_at` (§5.1); no-API apps via import/export (§5.4) |
+| **Contact capture** | Scan screen: QR → `parseProfile()` → insert with `status='captured'` (`source`, `profile_url`, `profile_slug`, `name`, `event_id`, `scanned_at`) | `unique (user_id, event_id, profile_url)` dedupes re-scans; RLS | QR carries only the public LinkedIn/Xing profile URL — **no scraping** (PM_PLAN §9) |
+| **Note** | Typed note → `note_text`; voice memo (MediaRecorder) → upload, then `note_kind` + `audio_path` | columns on `contacts`; nothing processed yet | Audio file in the **private `voice-notes` bucket**: `voice-notes/<user_id>/<contact_id>.<ext>` |
+| **Processing** | Sets `status='processing'`, calls the endpoint, polls the row every 2 s until status changes | `POST /api/contacts/:id/process`: STT (voice) → LLM call 1 (extract) → read `projects` → LLM call 2 (match + draft) → writes AI fields, `status='review'` or `'error'` | AI + STT keys live **server-side only**; ~€0.01 per contact; prompts in `/prompts` |
+| **Review / Save** | Review screen edits any field; changing project sets `project_set_by='user'`; Save → `status='saved'` | Plain supabase-js update; endpoint respects `project_set_by='user'` on re-runs | Phase 2: `status='saved'` triggers push to Notion (`external_id`, `external_synced_at`, §5.2) |
+| **Dashboard** | Filter / sort / edit everything incl. `stage`, `user_notes` | Same `contacts` table — no extra backend | `status` = capture pipeline (phone cares) · `stage` = relationship (dashboard cares) |

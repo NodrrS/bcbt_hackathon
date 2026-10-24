@@ -29,7 +29,7 @@
 2. Processing endpoint skeleton (even with fake AI fields) → unblocks Nodir's Processing→Review wiring. **Skeleton before perfection.**
 3. Utkarsh's measured per-contact cost (Sat evening) → Sadaf's cost slide; the ⚠️ estimate stays until then.
 4. Anastasiya's demo script (Sun morning) → Nodir's video recording (Sun midday).
-5. Notion = Phase 2. Nothing this weekend touches it.
+5. Notion sync = Phase 2. The only thing this weekend touches: Bhuvanesh registers the Notion integration (below) so Phase 2's OAuth consent screen is possible — no sync code.
 
 ---
 
@@ -65,6 +65,8 @@ The prototype already uses the schema's table and column names. Replace the four
 
 ## Utkarsh — backend (all of it; follow [docs/BACKEND_BRIEF.md §3](docs/BACKEND_BRIEF.md) in order)
 
+> **North star (Nodir, Sat 24):** a smooth sync between the frontend and the user's knowledge base — Notion first ([docs/DATA_MODEL.md §5](docs/DATA_MODEL.md)). For apps without an API (Apple Notes …) the fallback is a plain **import/export**: paste or upload a projects list in, export contacts out. Nothing of this ships this weekend, but keep the endpoint and schema compatible (the `external_*` columns stay untouched).
+
 ### Sat morning — unblock everyone first
 - [ ] Supabase project created (EU region); URL + anon key to Nodir and Bhuvanesh (brief step 1)
 - [ ] Migration `0001` applied; demo user created (D6); RLS smoke test — a second user sees zero rows (step 2)
@@ -82,6 +84,7 @@ The prototype already uses the schema's table and column names. Replace the four
 - [ ] Failures set `status='error'`, note + audio kept, Retry works (P-7)
 - [ ] 3 clean runs in a row on demo data (AC-4.1); after freeze, fixes only (AC-4.3)
 - [ ] Repo history clean of secrets (AC-6.6)
+- [ ] Stretch, only if the slice is green: projects **import** (paste a list / upload a file → rows in `projects`) — the no-API fallback for Apple Notes etc.
 
 ### Mon
 - [ ] API key valid, credits left (pre-flight); on standby during the demo
@@ -89,7 +92,8 @@ The prototype already uses the schema's table and column names. Replace the four
 ## Nodir — frontend + demo video
 
 ### Sat (don't wait for the backend — prototype's localStorage layer keeps working)
-- [ ] Real camera QR scan (html5-qrcode, D3) + `parseProfile()` on the scan screen
+- [ ] **Today's top priority:** real camera QR scan (html5-qrcode, D3) + `parseProfile()` on the scan screen
+- [ ] Align with Utkarsh on a smooth run over the data schema — statuses, column names, endpoint contract ([docs/DATA_MODEL.md §6](docs/DATA_MODEL.md) layer table) — before wiring Processing
 - [ ] Voice memo via MediaRecorder (⚠️ Safari records `audio/mp4`, Chrome `webm` — name by actual mimeType)
 - [ ] When keys arrive: swap the four `data.js` functions → supabase-js (brief step 4); sign in demo user on load; screens unchanged
 - [ ] Wire Processing → the endpoint, poll the row every 2 s until `status != 'processing'`; Review fully editable; Save → `status='saved'` (P-6)
@@ -108,6 +112,12 @@ The prototype already uses the schema's table and column names. Replace the four
 
 - [ ] Sat: `supabase/seed.sql` from [prototype/data.js](prototype/data.js) — demo user, 1 event, 4–5 projects **with 1–2-sentence descriptions** (the AI matches on them), fake personas only (AC-2.4, P-9); load after the migration, verify RLS
 - [ ] Sat: dashboard.html onto supabase-js — list, filters, sorting, detail edits, stage (P-8)
+- [ ] Sat/Sun (≤ 1 h): register **Syncy as a Notion public integration** → the OAuth client ID + secret that make Phase 2's consent screen possible:
+  1. [notion.so/profile/integrations](https://www.notion.so/profile/integrations) → **New integration** → name "Syncy", pick the team workspace.
+  2. Type **Public** — this asks for company name (team name is fine), website (the GitHub repo URL works), and a redirect URI: `https://<supabase-project-ref>.supabase.co/functions/v1/notion-oauth-callback` (project ref from Utkarsh; editable later).
+  3. Capabilities: read, insert, update content.
+  4. Save → copy the **OAuth client ID** and **client secret** into the team channel + Supabase Edge Function secrets — **never into the repo** (AC-2.2).
+  - If the public form blocks on anything (e.g. privacy-policy URL): create an **internal** integration instead and share the demo Projects page with it — same API, no OAuth, fine for the demo; redo as public after the weekend.
 - [ ] Sun: verify every AI field lands in the row after processing (P-5/P-6) · reset script so the demo starts clean · backup dashboard tab open
 
 ---
