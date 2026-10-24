@@ -59,6 +59,21 @@ button { cursor: pointer; border: 0; background: none; }
 .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 12px; font-weight: 600; background: var(--grey-soft); text-decoration: none; color: var(--ink); }
 .btn-primary { background: linear-gradient(135deg, var(--accent), #ef7d33); color: #fff; box-shadow: 0 6px 16px rgba(228, 96, 42, .28); }
 
+/* ---------- glossy UI ---------- */
+.btn-primary { position: relative; overflow: hidden; }
+.btn-primary::before {
+  content: ''; position: absolute; left: 2px; right: 2px; top: 2px; height: 48%; pointer-events: none;
+  border-radius: inherit; border-bottom-left-radius: 50% 35%; border-bottom-right-radius: 50% 35%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .45), rgba(255, 255, 255, .07));
+}
+.avatar { position: relative; overflow: hidden; }
+.avatar::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(130% 80% at 30% 15%, rgba(255, 255, 255, .6), rgba(255, 255, 255, .14) 40%, rgba(255, 255, 255, 0) 62%),
+    linear-gradient(180deg, rgba(255, 255, 255, .1), rgba(0, 0, 0, .1));
+}
+.stat { background: linear-gradient(180deg, #fff 0%, #fdf8f1 100%); }
+
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.6fr); gap: 12px; margin: 20px 0 18px; }
 .stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; text-align: left; box-shadow: var(--shadow); transition: transform .12s, border-color .12s; }
 button.stat:hover { transform: translateY(-1px); border-color: var(--accent-2); }
