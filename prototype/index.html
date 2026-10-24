@@ -1344,7 +1344,15 @@ window.addEventListener('popstate', event => {
 document.addEventListener('input', saveNavigationState);
 document.addEventListener('change', saveNavigationState);
 document.addEventListener('click', saveNavigationState);
-async function signOut() { try { await db.signOut(); } catch (error) { alert(`Could not sign out: ${error.message}`); } }
+async function signOut() { if (!db.live) { location.reload(); return; } try { await db.signOut(); } catch (error) { alert(`Could not sign out: ${error.message}`); } }
+// A local checkout has no config.js (it is generated only in the Vercel build), so offer the demo instead.
+function startDemo() {
+  document.getElementById('tabbar').style.display = '';
+  document.getElementById('sideIntro').textContent = 'Demo mode (no Supabase):';
+  document.getElementById('sideNote').textContent = 'Local sample data only — nothing is saved to an account.';
+  ui = freshUi();
+  render();
+}
 ui = freshUi();
 db.init().then(authenticated => {
   if (!authenticated) { location.replace('login.html?next=index.html'); return; }
@@ -1363,8 +1371,11 @@ db.init().then(authenticated => {
   render();
   refreshNotionStatus().then(() => render());
 }).catch(error => {
+  const noConfig = !window.SYNCY_CONFIG?.supabaseUrl || !window.SYNCY_CONFIG?.supabaseAnonKey;
   document.getElementById('sideNote').textContent = error.message || 'Check the Supabase URL and public key, then reload.';
-  document.getElementById('screen').innerHTML = '<div class="title">Could not connect to Supabase</div><p class="muted">Check your configuration and connection, then reload this page.</p><button class="btn btn-primary" onclick="location.reload()">Retry</button>';
+  document.getElementById('screen').innerHTML = noConfig
+    ? '<div class="title">Local checkout — no Supabase</div><p class="muted">config.js ships only with the deployed build, so this is normal here. Try every screen with demo data instead.</p><button class="btn btn-primary" onclick="startDemo()">Continue with demo data</button>'
+    : '<div class="title">Could not connect to Supabase</div><p class="muted">Check your configuration and connection, then reload this page.</p><button class="btn btn-primary" onclick="location.reload()">Retry</button>';
   document.getElementById('tabbar').style.display = 'none';
 });
 </script>
