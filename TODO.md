@@ -1,15 +1,15 @@
 # Syncy — Product build checklist
 
-This checklist reflects the current PRD, updated implementation plan, backend brief, architecture, business tasks, data model, schema, and prototype. The repo now contains live-mode frontend and Edge Function code; the Supabase project, keys, deployment, and end-to-end cloud verification remain external setup work.
+This checklist reflects the current PRD, implementation plan, backend brief, architecture, data model, schema, and app. The repo now requires authenticated Supabase accounts; project credentials, OAuth provider setup, deployment, and live verification remain external setup work.
 
 ## Scope and decisions
 
-- **Phase 1 (hackathon):** Supabase is the source of truth; projects are seeded/managed in Syncy. The user can classify contacts automatically from project descriptions, assign a project manually, and edit contacts later. This follows the new `ARCHITECTURE.md`, `BACKEND_BRIEF.md`, and `IMPLEMENTATION_PLAN.md`.
+- **Phase 1:** Supabase is the source of truth with email/password and Google sign-in and per-user RLS. Projects are managed in Syncy; the user can match contacts automatically, assign projects manually, and edit later.
 - **Phase 2 (post-hackathon):** Import/refresh projects from Notion, then optionally mirror contacts out. This keeps Notion import as a requested product capability without making it block the team's explicitly Supabase-only MVP.
-- The team docs specify Supabase Edge Functions and a demo user. OpenRouter is the LLM provider per your instruction; model and HTTPS host still need configuration. Codex is only the build tool.
+- Supabase Edge Functions handle transcription and insights. OpenRouter is the LLM/STT provider; Vercel hosts the frontend.
 - Use OpenRouter's Whisper transcription endpoint (`openai/whisper-1`); it accepts the same OpenRouter key as the text calls.
 - Treat the $18 OpenRouter balance as a hard test budget across transcription and text calls: choose a low-cost model, bound prompts/output, log per-call usage/cost, and stop before exhausting the balance.
-- Provider and service-role secrets stay server-side. Browser Supabase anon credentials are acceptable only with RLS enabled and a signed-in demo user.
+- Provider and service-role secrets stay server-side. Browser receives only the Supabase public key and requires a signed-in user; RLS scopes data to that user.
 
 ## Current state
 
@@ -17,7 +17,7 @@ This checklist reflects the current PRD, updated implementation plan, backend br
 - [x] Phone flow and dashboard exist as clickable HTML/JS prototypes with invented seed data.
 - [x] Prototype supports basic manual project assignment, editing, filters, and localStorage persistence.
 - [x] New docs define a Phase 1 Supabase/Edge Function pipeline and defer Notion to Phase 2.
-- [x] Live-mode Supabase adapter, authenticated Edge Function pipeline, QR camera scan, MediaRecorder upload, and setup docs are now implemented in the repo.
+- [x] Supabase adapter, email/Google auth UI, password reset, per-user access, QR scan, stop-to-transcript voice flow, and Vercel build config are implemented.
 - [ ] Supabase project/credentials, provider keys, and deployment still need to be configured outside the repo.
 - [ ] No Notion connector exists (Phase 2 by current team plan).
 
@@ -26,18 +26,18 @@ This checklist reflects the current PRD, updated implementation plan, backend br
 ### Backend and data
 
 - [ ] Lock/record D1 stack, D2 model and D9 HTTPS host in the PM plan.
-- [ ] Create the EU Supabase project, apply migration `0001`, create the demo auth user, and verify RLS with a second user.
+- [ ] Apply migration `0001` and the contact reference ownership migration; configure email and Google Auth; verify two users see separate workspaces.
 - [x] Add `supabase/seed.sql` with one fictional event, three projects with descriptions, and an invented contact.
-- [x] Add gitignored client config template for Supabase URL/anon key and demo credentials. Keep AI and service-role secrets in Edge Function secrets only.
+- [x] Add gitignored client config template for the Supabase URL/public key; keep AI and service-role secrets in Edge Function secrets only.
 - [x] Replace local data operations with a Supabase adapter while preserving phone/dashboard reads and writes.
-- [x] Implement private Storage upload with the actual audio MIME/extension (`webm` or `mp4`).
+- [x] Send voice audio to the Edge Function for transcription without storing the audio.
 
 ### Capture and AI processing
 
 - [x] Implement camera QR scanning and LinkedIn/Xing/other URL parsing; insert/deduplicate contacts without scraping profile data.
 - [x] Implement typed notes and up-to-60-second voice recording; captured contacts can be deferred.
 - [x] Implement the `process-note` Edge Function with processing/review/error statuses and retry while retaining input.
-- [x] Implement OpenRouter Whisper transcription and save transcript in `note_text` (same OpenRouter key).
+- [x] Implement OpenRouter Whisper transcription on stop and show transcript before Process; save only transcript text.
 - [x] Implement server-side OpenRouter structured insights, project match/reason/confidence, and follow-up draft; prompts are in the repo and malformed JSON retries once.
 - [x] Match against active project names and descriptions. Leave unknown fields empty, limit discussed items to three, select one project or none, ground the reason in the note, and keep follow-up drafts to 80 words.
 - [x] Preserve `project_set_by='user'` assignments through AI processing and retries; only write an AI suggestion if the user has not assigned a project.
@@ -52,21 +52,21 @@ This checklist reflects the current PRD, updated implementation plan, backend br
 
 ### Launch and judging deliverables
 
-- [ ] Deploy both pages over HTTPS and verify camera/microphone on the demo phone.
+- [ ] Configure Vercel Supabase URL/public-key environment variables and deploy; verify signup, email confirmation, Google login, reset, signout, and per-user data isolation.
 - [ ] Measure latency, tokens/audio duration, and real cost per contact; give Sadaf the observed figures and update cost scenarios for 100/1,000/10,000 users.
 - [ ] Complete three clean end-to-end demo runs, the non-builder usability test, and a fallback recording.
 - [ ] Anastasiya: complete at least 8 interviews; record evidence/quotes; finalize ICP, positioning, GTM, and demo script.
 - [ ] Sadaf: validate €9.99/month against interview evidence, verify competition/market figures, finalize unit economics and slides.
 - [ ] Bhuvanesh: maintain cost log and dashboard-derived demo metrics.
 - [ ] Finish official slides, AI tool disclosure, two rehearsals, Q&A prep, and live-demo preflight.
-- [x] Update README with app setup, required variables, and the distinction between local prototype and live app.
+- [x] Update README with Supabase Auth, Google provider, SMTP, and Vercel setup.
 - [ ] Add the final deployed URL and verify git history contains no secrets.
 
 ## Phase 2 — Notion projects in (requested follow-on)
 
 - [ ] Add acceptance criteria for initial import, refresh, edits/deletions, auto-match, manual override, and later contact editing.
 - [ ] Identify the Notion projects database/page and map its title and description properties; decide what to do when descriptions are blank.
-- [ ] Choose the simplest secure connection for the current single-user use case (integration token; OAuth only if users must connect their own workspaces).
+- [ ] Design per-user Notion OAuth and project import permissions.
 - [ ] Read projects server-side and upsert by Notion page ID into `projects`; verify the actual Postgres conflict target/unique index before implementing upsert.
 - [ ] Add initial import and manual refresh controls with a clear result count and recoverable errors.
 - [ ] Refresh renamed/edited projects and archive removed Notion projects without deleting rows or breaking existing contact links; exclude archived projects from AI matching.

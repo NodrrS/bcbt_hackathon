@@ -6,7 +6,7 @@
 <title>Syncy contacts</title>
 <!--
   Contacts dashboard. Reads and writes the same rows as the phone app through data.js,
-  which uses Supabase when config.js is present and localStorage for the prototype.
+  which requires an authenticated Supabase session.
 -->
 <style>
 :root {
@@ -182,24 +182,23 @@ select.f.set { border-color: var(--accent); background: var(--accent-soft); }
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app" style="visibility:hidden">
   <aside class="side">
     <div class="brand"><span class="logo"></span>Syncy</div>
     <a class="nav on" href="#">👥 Contacts <span class="count" id="navCount"></span></a>
     <a class="nav" href="index.html">📱 Phone app</a>
-    <button class="nav" onclick="resetDemo()">↺ Reset demo data</button>
     <div class="spacer"></div>
     <div class="store-status"><span class="dot"></span><b>Stored in Syncy</b> (Supabase)<span class="p2">Notion / notes-app sync: Phase 2</span></div>
   </aside>
 
   <main class="main">
-    <span class="demo-banner">Prototype · invented people and companies · data stays in this browser</span>
+    <span class="demo-banner">Connecting to your Supabase workspace…</span>
     <div class="head">
       <div>
         <h1>Contacts</h1>
         <p id="subline"></p>
       </div>
-      <a class="btn btn-primary" href="index.html">＋ Scan a new contact</a>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn btn-primary" href="index.html">＋ Scan a new contact</a><button class="btn" onclick="signOut()">Sign out</button></div>
     </div>
 
     <section class="stats" id="stats" aria-label="Summary"></section>
@@ -542,7 +541,7 @@ function copyDraft(btn) {
   btn.textContent = 'Copied ✓';
   setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
 }
-function resetDemo() { if (db.live) { alert('Demo reset is available only in the local prototype.'); return; } db.reset(); state.openId = null; clearFilters(); }
+async function signOut() { try { await db.signOut(); } catch (error) { alert(`Could not sign out: ${error.message}`); } }
 
 document.getElementById('q').addEventListener('input', e => { state.q = e.target.value; state.statFilter = null; renderRows(); document.getElementById('clearBtn').style.visibility = isFiltered() ? 'visible' : 'hidden'; });
 [['fProject', 'project'], ['fEvent', 'event'], ['fDue', 'due'], ['fStatus', 'status'], ['fSource', 'source'], ['sortSel', 'sort']].forEach(([id, key]) =>
@@ -551,7 +550,15 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && state.open
 // The phone app saved something in another tab.
 window.addEventListener('db-change', () => { if (state.openId && !db.get('contacts', state.openId)) state.openId = null; renderAll(); });
 window.addEventListener('db-error', e => alert(`Could not sync with Supabase: ${e.detail}`));
-db.init().then(renderAll).catch(error => alert(`Could not connect to Supabase: ${error.message}`));
+window.addEventListener('auth-change', () => location.replace('login.html?next=dashboard.html'));
+db.init().then(authenticated => {
+  if (!authenticated) { location.replace('login.html?next=dashboard.html'); return; }
+  document.querySelector('.app').style.visibility = 'visible';
+  document.querySelector('.demo-banner').textContent = `Private Supabase workspace · ${db.user.email || 'signed in'}`;
+  renderAll();
+}).catch(error => {
+  document.querySelector('.app').innerHTML = '<main class="main"><h1>Could not connect to Supabase</h1><p>Check your configuration and connection, then reload.</p><button class="btn" onclick="location.reload()">Retry</button></main>';
+});
 </script>
 </body>
 </html>

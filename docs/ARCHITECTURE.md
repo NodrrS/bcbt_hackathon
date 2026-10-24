@@ -13,7 +13,7 @@
 | AI | simulated | Edge Function: STT + 2 LLM calls | same |
 | Projects | seeded in `data.js` | typed in the app, `projects` table | **pulled from Notion** (OAuth) |
 | Contacts end up in | localStorage | Supabase (`status='saved'`) | Supabase **+ mirrored to Notion** |
-| Auth | none | single demo user (D6) | real sign-up, RLS unchanged |
+| Auth | none | Supabase email + Google auth, RLS per user | account settings / more providers |
 
 ## 1. Current — clickable prototype
 
@@ -36,7 +36,7 @@ flowchart LR
     app["Phone app<br/>scan · note · review"]
     dash["Dashboard<br/>filter · edit · stages"]
   end
-  subgraph supa["Supabase — auth: single demo user · RLS on every table"]
+  subgraph supa["Supabase Auth · per-user RLS on every table"]
     pg[("Postgres<br/>events · projects · contacts")]
     fn["Edge Function process-note"]
   end
@@ -56,7 +56,7 @@ flowchart LR
 4. **Review** → user edits any field, assigns/changes project → `status='saved'`.
 5. **Dashboard** → reads/updates the same rows: `stage`, `user_notes`, next steps. Pipeline `status` and relationship `stage` are deliberately separate columns.
 
-**Security/cost:** AI + service keys live only in Edge Function env vars (AC-2.2, P-6); the browser holds the anon key + RLS. Audio is forwarded to OpenRouter for transcription and discarded after the request; only transcript text is saved when the user taps Process. A transcription failure requires recording again.
+**Security/cost:** AI + service keys live only in Edge Function env vars (AC-2.2, P-6); the browser holds only the public key. RLS and ownership checks isolate each account. Audio is forwarded to OpenRouter for transcription and discarded after the request; only transcript text is saved when the user taps Process. A transcription failure requires recording again.
 
 ## 3. Phase 2 — Notion and notes-app sync
 
@@ -84,16 +84,16 @@ flowchart LR
 - **Conflicts:** fields Syncy generates (summary, match, draft) — Supabase wins. Two-way fields (stage, user notes, next-step date) — last write wins via `updated_at` vs `last_edited_time`.
 - **Other apps:** one connector module per app; Apple Notes has no public API (export/Shortcuts only).
 
-**Also parked for Phase 2+** (from PRD §2 and the graded data-access table): badge-photo/vCard capture if cut from Phase 1 (D4), opt-in Apify enrichment for the paid tier (D8), both-sided Syncy QR consent exchange (roadmap), real multi-user auth + billing.
+**Also parked for Phase 2+** (from PRD §2 and the graded data-access table): Notion and notes-app sync, badge-photo/vCard capture if cut from Phase 1 (D4), opt-in Apify enrichment for the paid tier (D8), both-sided Syncy QR consent exchange (roadmap), and billing.
 
 ## 4. What changes between phases (build checklist view)
 
 | Change | Current → Phase 1 | Phase 1 → Phase 2 |
 |---|---|---|
 | Swap `data.js` 4 functions for supabase-js | ✅ | — |
-| Apply `0001_phase1_schema.sql`, seed demo user + projects | ✅ | — |
+| Apply `0001_phase1_schema.sql` + ownership migration; users sign up themselves | ✅ | — |
 | Build `process-note` Edge Function + prompts in repo | ✅ | — |
 | HTTPS hosting for the two pages (D9) | ✅ | — |
 | Notion OAuth + `pull-projects` / `push-contacts` + queue | — | ✅ |
 | Connector interface for further apps | — | ✅ |
-| Real auth + billing | — | ✅ |
+| Billing | — | ✅ |

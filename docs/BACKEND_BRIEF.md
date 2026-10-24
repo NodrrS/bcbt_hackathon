@@ -62,21 +62,21 @@ sequenceDiagram
 | Where | Variable | Notes |
 |---|---|---|
 | Client (gitignored `config.js` or build env) | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | anon key is safe client-side **because RLS is on** |
-| Client | `DEMO_EMAIL`, `DEMO_PASSWORD` | single demo user (D6); sign in on page load so `auth.uid()` works |
+| Client | email/password or Google OAuth session | Supabase Auth provides the user token; RLS scopes all rows to `auth.uid()` |
 | Edge Fn secrets | `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` | one OpenRouter key covers LLM and Whisper STT; keys never in the repo |
-| Edge Fn (auto) | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | injected by Supabase |
+| Edge Fn (auto) | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | injected by Supabase |
 
 ## 3. Build & wiring order (do it in this sequence)
 
-- [ ] **1. Supabase project** (EU region). Save URL + anon key into the gitignored client config.
-- [ ] **2. Apply schema + demo user.** `supabase db push` (migration 0001). Create the demo auth user. Smoke-test RLS: a second user must see zero rows.
-- [ ] **3. Seed** (with Bhuvanesh): 1 event, 4–5 projects **with 1–2-sentence descriptions** (the AI matches on `name + description`), fake personas (P-6).
-- [ ] **4. Swap `data.js` → supabase-js** (with Nodir): keep the exact four function signatures (`db.list/insert/update`, projects list) from [DATA_MODEL.md §3](DATA_MODEL.md) so no screen code changes. Sign in the demo user on load.
+- [x] **1. Supabase data layer** and project URL/public-key config.
+- [ ] **2. Apply schema + ownership migration.** Enable email confirmations, configure Google OAuth and URL redirects; verify two users cannot see each other's data.
+- [x] **3. Account UI:** email sign-up/sign-in, Google sign-in, password reset, and sign-out. New accounts start empty.
+- [x] **4. Authenticated data adapter:** load only after a valid Supabase session; writes and policies are scoped to the current user.
 - [x] **5. Voice transcription on stop:** send in-memory audio to the authenticated Edge Function and return transcript without storing audio.
-- [ ] **6. Edge Fn `process-note` skeleton first:** statuses + error path before any AI — set `processing`, fake fields, set `review`; on throw set `status='error'` (keeps audio + fields, P-5). Frontend polls the row every 2 s.
+- [x] **6. Edge Fn `process-note`:** status/error path and real AI calls; voice transcript is already in the row before insights processing.
 - [x] **7. Wire the AI** inside the function: Whisper STT → `note_text`; OpenRouter LLM 1 → summary JSON; active project read; OpenRouter LLM 2 → match + confidence + follow-up draft. If `project_set_by='user'`, keep the manual assignment. Invalid JSON retries once. Prompt text lives beside the Edge Function.
 - [ ] **8. Idempotency:** re-invoking on the same contact must be safe (retry button).
-- [ ] **9. Deploy** both pages to the HTTPS host; test camera + mic **on the demo phone** (D10), not just desktop.
+- [ ] **9. Deploy** the static app to Vercel; set Supabase URL/public-key build variables and test on a phone.
 - [ ] **10. Measure:** log seconds + tokens per step; hand real €/contact to Sadaf (AC-7.4). Then: 3 clean runs in a row (AC-4.1).
 
 ## 4. Acceptance checks for the wiring

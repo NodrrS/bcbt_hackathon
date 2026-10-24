@@ -178,7 +178,7 @@ GET  /api/contacts?day=today  —                              → list
 | **D3** | QR scanning approach | a) Live camera + JS QR lib (html5-qrcode/jsQR) b) take photo → decode server-side | **a**, with b as silent fallback | Nodir | Fri EOD |
 | **D4** | Badge-photo + vCard fallback: in MVP or Later? | a) In (Day 2 PM) b) Later list | **b if Day 2 slips, a otherwise** — demo needs only the QR path | Team | Sat 13:00 |
 | **D5** | Notion schema freeze + M3 slice definition | Schema in §8; slice = scan→note→summary on screen | **Accept §8 as written; select not relation** | Bhuvanesh + Utkarsh | Sat 10:00 |
-| **D6** | User model for demo | a) Hardcoded single demo user b) Simple login | **a** — auth is not scored | Team | Fri 16:00 |
+| **D6** | User model | a) Hardcoded single demo user b) Supabase email and Google login | **b** — private user accounts with per-user data isolation | Team | Updated 24 Oct |
 | **D7** | Voice note language for the demo | a) English only b) German + English | **b supported (Whisper auto-detects), demo rehearsed in English** | Anastasiya + Utkarsh | Sat 13:00 |
 | **D8** | Apify "Enrich" button | a) Feature-flagged build b) Later list + roadmap slide | **b** — €0.004/contact and ToS/GDPR gray zone; keep as evaluated option for judges' Q&A | Team | Fri 16:00 |
 | **D9** | Hosting / live URL (must be HTTPS) | Vercel / Render / Railway / fly.io | **Whatever the stack from D1 deploys to in one command**; live URL by Sat evening | Utkarsh | Fri EOD |

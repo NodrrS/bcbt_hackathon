@@ -180,6 +180,7 @@
   let client = null;
   let live = false;
   let userId = null;
+  let currentUser = null;
   let channel = null;
   let audioBlob = null;
   const writes = new Map();
@@ -196,29 +197,80 @@
     TODAY,
     contactRow,
     get live() { return live; },
+    get user() { return currentUser; },
     async init() {
       if (!window.SYNCY_CONFIG?.supabaseUrl || !window.SYNCY_CONFIG?.supabaseAnonKey) {
-        data.contacts.forEach(c => { c.profile_url = window.parseProfile(c.profile_url).profile_url; });
-        save();
-        return;
+        throw new Error('Supabase is not configured. Add the project URL and public key, then reload.');
       }
       client = window.supabase.createClient(window.SYNCY_CONFIG.supabaseUrl, window.SYNCY_CONFIG.supabaseAnonKey);
       const { data: { session }, error: sessionError } = await client.auth.getSession();
       if (sessionError) throw sessionError;
-      if (!session) {
-        const { data: signed, error } = await client.auth.signInWithPassword({
-          email: window.SYNCY_CONFIG.demoEmail, password: window.SYNCY_CONFIG.demoPassword,
-        });
-        if (error) throw error;
-        userId = signed.user.id;
-      } else userId = session.user.id;
+      if (session?.user.email?.toLowerCase() === 'demo@syncy.local') {
+        await client.auth.signOut();
+        return false;
+      }
+      if (session) await this.activateSession(session);
+      client.auth.onAuthStateChange((_event, sessionNow) => {
+        if (sessionNow) {
+          if (currentUser && currentUser.id !== sessionNow.user.id) {
+            live = false; data = { events: [], projects: [], contacts: [] };
+            window.dispatchEvent(new Event('auth-change'));
+          }
+          userId = sessionNow.user.id; currentUser = sessionNow.user;
+        }
+        else if (live) {
+          live = false; userId = null; currentUser = null;
+          channel?.close(); channel = null;
+          writes.clear();
+          data = { events: [], projects: [], contacts: [] };
+          window.dispatchEvent(new Event('auth-change'));
+        }
+      });
+      return Boolean(session);
+    },
+    async activateSession(session) {
+      userId = session.user.id;
+      currentUser = session.user;
       live = true;
-      try { await this.reload(false); } catch (error) { live = false; throw error; }
-      if ('BroadcastChannel' in window) {
+      try { await this.reload(false); } catch (error) { live = false; userId = null; currentUser = null; throw error; }
+      if ('BroadcastChannel' in window && !channel) {
         channel = new BroadcastChannel('syncy-live');
         channel.onmessage = () => this.reload().catch(report);
       }
-      client.auth.onAuthStateChange((_event, sessionNow) => { userId = sessionNow?.user?.id || null; });
+    },
+    async signIn(email, password) {
+      if (email.trim().toLowerCase() === 'demo@syncy.local') throw new Error('The shared demo account is no longer supported. Create a personal account.');
+      const { data: result, error } = await client.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      await this.activateSession(result.session);
+      return result.user;
+    },
+    async signUp(email, password, emailRedirectTo) {
+      const { data: result, error } = await client.auth.signUp({ email, password, options: { emailRedirectTo } });
+      if (error) throw error;
+      if (result.session) await this.activateSession(result.session);
+      return { user: result.user, authenticated: Boolean(result.session) };
+    },
+    async signInWithGoogle(redirectTo) {
+      const { error } = await client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
+      if (error) throw error;
+    },
+    async sendPasswordReset(email, redirectTo) {
+      const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) throw error;
+    },
+    async updatePassword(password) {
+      const { error } = await client.auth.updateUser({ password });
+      if (error) throw error;
+    },
+    async signOut() {
+      const { error } = await client.auth.signOut();
+      if (error) throw error;
+      live = false; userId = null; currentUser = null;
+      channel?.close(); channel = null;
+      writes.clear();
+      data = { events: [], projects: [], contacts: [] };
+      window.dispatchEvent(new Event('auth-change'));
     },
     async reload(notify = true) {
       if (!live) return;

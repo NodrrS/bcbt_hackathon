@@ -74,18 +74,9 @@ Two different "states", on purpose:
 
 Rules in the schema: one row per person per event (`unique (user_id, event_id, profile_url)`), `discussed` max 3 items, RLS so every user only sees their own rows. The private `voice-notes` bucket remains for cleaning up recordings created by the earlier flow; new recordings are not stored there.
 
-## 3. Frontend mirror
+## 3. Frontend data access
 
-`prototype/data.js` holds the same three tables as arrays of plain objects with **identical snake_case column names**, persisted in `localStorage` for the prototype. Both the phone app and the dashboard read and write through it, so a contact saved on the phone shows up in the dashboard.
-
-| Prototype call | Real build (supabase-js) |
-|---|---|
-| `db.list('contacts')` | `supabase.from('contacts').select('*')` |
-| `db.insert('contacts', row)` | `supabase.from('contacts').insert(row).select().single()` |
-| `db.update('contacts', id, patch)` | `supabase.from('contacts').update(patch).eq('id', id)` |
-| `db.list('projects')` | `supabase.from('projects').select('*').eq('archived', false)` |
-
-So swapping the prototype for the real backend means replacing four functions, not rewriting screens.
+`prototype/data.js` is the shared Supabase adapter for the phone app and dashboard. It uses the schema's snake_case columns, reads the authenticated user's session, and scopes inserts and updates by that user's ID. Both pages share the same project, event, and contact rows.
 
 ## 4. Dashboard ↔ schema
 

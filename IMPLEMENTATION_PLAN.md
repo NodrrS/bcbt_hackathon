@@ -1,5 +1,7 @@
 # Implementation Plan — Syncy
 
+> Historical hackathon schedule; its progress/status notes are stale. Current auth, setup, and deployment instructions are in [README.md](README.md) and [TODO.md](TODO.md). Phase 1 now includes per-user email and Google authentication.
+
 > **Status Sat 24 Oct, morning:** pitch delivered (M1 ✅) · stack locked + schema written (M2 ◐) · **backend build 0% — nothing created in Supabase yet.** This plan is re-dated from that reality.
 > Gates and AC numbers: [ACCEPTANCE_CRITERIA.md](ACCEPTANCE_CRITERIA.md) · timeline: [PM_PLAN.md §3](PM_PLAN.md).
 > Single sources of truth: screens = [prototype/index.html](prototype/index.html) + [prototype/dashboard.html](prototype/dashboard.html) · schema = [supabase/migrations/0001_phase1_schema.sql](supabase/migrations/0001_phase1_schema.sql) · flow and field mapping = [docs/DATA_MODEL.md](docs/DATA_MODEL.md). If this plan and those files disagree, the files win; fix the plan.
