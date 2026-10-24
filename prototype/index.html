@@ -364,7 +364,7 @@ function freshUi() {
   return {
     tab: 'today', screen: 'today', eventId, pickId: null, eventForm: null,
     contactId: null, draft: null, from: null,
-    noteMode: 'text', noteText: '', rec: { status: 'idle', secs: 0, words: 0 },
+    noteMode: 'voice', noteText: '', rec: { status: 'idle', secs: 0, words: 0 },
     justScanned: null, projForm: null, evConfirm: null,
   };
 }
@@ -493,7 +493,7 @@ function restoreNavigationState(snapshot) {
     tab: ['today', 'contacts', 'projects'].includes(snapshot.tab) ? snapshot.tab : 'today',
     eventId: snapshot.eventId || null, pickId: snapshot.pickId || null, eventForm: snapshot.eventForm || null,
     contactId: snapshot.contactId || null, draft: snapshot.draft || null, from: snapshot.from || null,
-    noteMode: snapshot.noteMode || 'text', noteText: snapshot.noteText || '',
+    noteMode: snapshot.noteMode || 'voice', noteText: snapshot.noteText || '',
     rec: snapshot.rec || { status: 'idle', secs: 0, words: 0 },
     justScanned: snapshot.justScanned || null, projForm: snapshot.projForm || null,
     evConfirm: snapshot.evConfirm || null, editUrl: Boolean(snapshot.editUrl), error: snapshot.error || null,
@@ -673,8 +673,8 @@ const SCREENS = {
       </div>
       <div class="title" style="margin-top:14px">How did it go with ${esc((c.name || 'them').split(' ')[0])}?</div>
       <div class="seg" role="tablist">
-        <button class="${textMode ? 'on' : ''}" ${modeBusy ? 'disabled' : ''} onclick="setNoteMode('text')">✍️ Write a note</button>
         <button class="${textMode ? '' : 'on'}" ${modeBusy ? 'disabled' : ''} onclick="setNoteMode('voice')">🎙️ Voice memo</button>
+        <button class="${textMode ? 'on' : ''}" ${modeBusy ? 'disabled' : ''} onclick="setNoteMode('text')">✍️ Write a note</button>
       </div>
       <div class="prompts"><span>Who are they?</span><span>What do they need?</span><span>What did you agree?</span></div>
       ${textMode ? `
@@ -1050,7 +1050,7 @@ document.addEventListener('click', e => { if (suppressClick) { e.stopPropagation
 
 // ---------- actions: note ----------
 function openNote(id) {
-  ui.contactId = id; ui.noteMode = 'text'; ui.noteText = '';
+  ui.contactId = id; ui.noteMode = 'voice'; ui.noteText = '';
   ui.audioBlob = null; ui.error = null; ui.rec = { status: 'idle', secs: 0, words: 0 };
   go('note');
 }
