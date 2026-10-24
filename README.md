@@ -25,14 +25,19 @@ Built at the BCBT AI Entrepreneurship Hackathon, CIC Berlin, 23–26 Oct 2026.
 
 ## Run the prototype
 
-Open `prototype/index.html` in a browser, or serve it:
+No build step — anyone with access to this repo needs only a browser. Teammates must be added as collaborators first (GitHub → Settings → Collaborators).
 
 ```bash
+git clone git@github.com:NodrrS/bcbt_hackathon.git   # or https://github.com/NodrrS/bcbt_hackathon.git
+cd bcbt_hackathon
 python3 -m http.server 5173 --directory prototype
 ```
 
-Then go to http://localhost:5173.
+Then open:
 
-Open `dashboard.html` the same way for the contacts dashboard; both pages share their data in the browser.
+- http://localhost:5173 — phone prototype (Phase 1 flow)
+- http://localhost:5173/dashboard.html — contacts dashboard
 
-The prototype uses invented people and fake profile URLs. AI output is simulated, and rows are stored in the browser (localStorage) with the same tables and columns as the Supabase schema.
+Serve the files rather than opening them directly: both pages share their rows through localStorage, which only works reliably from one origin. `npx serve prototype` works too if you don't have Python.
+
+The prototype uses invented people and fake profile URLs. AI output is simulated, and rows are stored in the browser (localStorage) with the same tables and columns as the Supabase schema — nothing touches Supabase, so test freely.
