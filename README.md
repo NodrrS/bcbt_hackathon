@@ -10,6 +10,9 @@ Built at the BCBT AI Entrepreneurship Hackathon, CIC Berlin, 23–26 Oct 2026.
 |---|---|
 | [IDEA_PITCH.md](IDEA_PITCH.md) | The six pitch answers, how it works, pitch script |
 | [PRD.md](PRD.md) | Detailed product requirements + decisions to lock in (🔒) |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Current, Phase 1 and Phase 2 architecture (Mermaid) |
+| [docs/BACKEND_BRIEF.md](docs/BACKEND_BRIEF.md) | Backend build & wiring instructions: journey → calls, tools, keys, order |
+| [docs/BUSINESS_TASKS.md](docs/BUSINESS_TASKS.md) | Economics, pricing, research and marketing tasklists (Sadaf, Anastasiya) |
 | [SLIDES_BRIEF.md](SLIDES_BRIEF.md) | Slide-by-slide content for the pitch deck |
 | [docs/screenshots/](docs/screenshots/) | Prototype screenshots of the Phase 1 flow and the dashboard, for the slides |
 | [prototype/index.html](prototype/index.html) | Clickable phone prototype, Phase 1 flow (demo data, AI simulated) |

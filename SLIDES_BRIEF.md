@@ -6,6 +6,9 @@
 
 Judges score: **30%** works live · **20%** real problem for a real user · **20%** who pays and why switch · **15%** cost to run and dependencies · **15%** demo quality.
 
+**Owners & deadlines (24 Oct):** deck build = **Sadaf (lead)**; slides 2–3 content = Anastasiya; slides 7–8 content = Sadaf; slide 6 assets (screens, video) = Nodir; numbers on slide 8 = Bhuvanesh + Utkarsh. **v1 in the official template Sat evening → final Sun before submission (M6).**
+Diagram assets for slides 4/5/8/9: [docs/diagrams/](docs/diagrams/) (user journey + architecture SVGs).
+
 ---
 
 ## 1. Title
@@ -55,7 +58,7 @@ Three steps, one screen each:
 
 ## 7. Business model: who pays and why switch
 
-- **Who pays:** the freelancer, **€9 / month** ⚠️ (later: €19 / seat for sales and business-development teams)
+- **Who pays:** the freelancer, **€9.99 / month** ⚠️ (later: €19 / seat for sales and business-development teams) — final price is Sadaf's call D11, Sat EOD
 - **Today:** LinkedIn + notes app + memory: free, but contacts and context get lost
 - **Why switch:** one contact turned into a client pays for years of Syncy; saves ~1 h ⚠️ of sorting after each event
 - Optional: a one-sentence market-size estimate (number of freelancers in Berlin / Germany) — only if we can source it
@@ -69,6 +72,8 @@ Three steps, one screen each:
 | Supabase (database, voice-memo storage, auth) | free tier | €0 |
 | **Total** | | **< €5 / month** (update from PM_PLAN §7 cost log) |
 
+Visual: [docs/diagrams/architecture-phase1.svg](docs/diagrams/architecture-phase1.svg) — one picture answers "what does it run on".
+
 Dependencies and risks:
 - **AI model provider:** prices and API keys; we could switch to an open model (Ollama) if needed
 - **Supabase:** database, storage and auth in one service; free tier covers the hackathon
@@ -78,6 +83,8 @@ Dependencies and risks:
 
 ## 9. What's next (the "Later" list)
 
+Visual: [docs/diagrams/architecture-phase2.svg](docs/diagrams/architecture-phase2.svg) — the Notion sync picture.
+
 - Sync with Notion and other notes apps (Phase 2)
 - Google Drive / Sheets as another target
 - Photo of a badge or business card instead of a QR code
@@ -86,16 +93,18 @@ Dependencies and risks:
 
 ## 10. Tools we used (required by the AI policy)
 
-| Tool | Used for |
-|---|---|
-| Claude Code (Claude Opus) | Drafting the pitch documents, building the clickable prototype |
-| `add: AI model for the product` | Transcription, summary, project match, follow-up draft |
-| `add: hosting / database` | |
-| `add: Gamma, if used` | Slide drafts |
+| Tool | Used for | Who can explain it |
+|---|---|---|
+| Claude Code | Pitch documents, clickable prototype, plans and diagrams | Nodir |
+| `add: AI model per D2 (mentor key)` | Transcription, summary, project match, follow-up draft | Utkarsh |
+| Supabase | Database, voice-memo storage, auth (RLS), processing | Utkarsh |
+| html5-qrcode (JS library) | Camera QR scanning in the browser | Nodir |
+| `add: HTTPS hosting per D9` | Serving the phone app + dashboard | Utkarsh |
+| `add: Gamma, if used` | Slide drafts | Sadaf |
 
 ## 11. Team
 
-- Team Syncy: names and roles (from PM_PLAN §2)
+- **Nodir** — PM, frontend, demo video · **Utkarsh** — backend & AI · **Anastasiya** — user research, positioning, GTM · **Sadaf** — economics, pricing, slides · **Bhuvanesh** — data, dashboards, cost tracking
 
 ---
 

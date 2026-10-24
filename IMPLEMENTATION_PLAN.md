@@ -1,24 +1,35 @@
 # Implementation Plan — Syncy
 
-> Per-person checklists, Day 1 (Fri 23 Oct) → Day 4 (Mon 26 Oct).
-> Gates and AC numbers refer to [ACCEPTANCE_CRITERIA.md](ACCEPTANCE_CRITERIA.md); timeline in [PM_PLAN.md §3](PM_PLAN.md).
-> **Phase 1 = Supabase** (events, projects, contacts). Notion / notes-app sync is **Phase 2** and not built this weekend.
+> **Status Sat 24 Oct, morning:** pitch delivered (M1 ✅) · stack locked + schema written (M2 ◐) · **backend build 0% — nothing created in Supabase yet.** This plan is re-dated from that reality.
+> Gates and AC numbers: [ACCEPTANCE_CRITERIA.md](ACCEPTANCE_CRITERIA.md) · timeline: [PM_PLAN.md §3](PM_PLAN.md).
 > Single sources of truth: screens = [prototype/index.html](prototype/index.html) + [prototype/dashboard.html](prototype/dashboard.html) · schema = [supabase/migrations/0001_phase1_schema.sql](supabase/migrations/0001_phase1_schema.sql) · flow and field mapping = [docs/DATA_MODEL.md](docs/DATA_MODEL.md). If this plan and those files disagree, the files win; fix the plan.
-> Rule of thumb: the AI processing endpoint (Utkarsh) is the critical path for the 30% "works live" score; everyone else parallelizes around it and never blocks it.
+> Detail docs: backend hand-off = [docs/BACKEND_BRIEF.md](docs/BACKEND_BRIEF.md) · business tasks = [docs/BUSINESS_TASKS.md](docs/BUSINESS_TASKS.md) · slides = [SLIDES_BRIEF.md](SLIDES_BRIEF.md) · diagrams for slides = [docs/diagrams/](docs/diagrams/).
+
+## Team — who owns what
 
 | Who | Owns | Judging weight covered |
 |---|---|---|
-| **Nodir** | PM, phone app frontend (event → scan → note → review), PRD, pitch, submission | 30% works live (with Utkarsh) · 15% demo |
-| **Anastasiya** | ICP, interviews, positioning, GTM, CX-UX copy, demo script | 20% real problem/user · 15% demo |
-| **Bhuvanesh** | Supabase demo data, contacts dashboard, BI numbers, cost log | 15% cost & dependencies (with Sadaf) |
-| **Utkarsh** | Supabase project + schema, AI processing endpoint (STT + 2 LLM calls) | 30% works live |
-| **Sadaf** | Pricing, competition, market analysis, business slides | 20% who pays & why switch |
+| **Nodir** | PM · **frontend** (phone app screens on supabase-js) · **demo video** | 30% works live (with Utkarsh) · 15% demo |
+| **Utkarsh** | **Backend, end to end**: Supabase project, migration, storage, AI processing endpoint, HTTPS deploy | 30% works live |
+| **Sadaf** | Economics, pricing, competition, market · **slides lead** | 20% who pays · 15% cost (with Bhuvanesh) |
+| **Anastasiya** | User research, ICP, positioning, GTM, demo script · slides with Sadaf | 20% real problem/user · 15% demo |
+| **Bhuvanesh** | **Floater**: build support (seed data, dashboard wiring) + business support (cost log, BI numbers) | 15% cost & dependencies |
 
-**Hard dependencies (watch these):**
-1. Utkarsh's Supabase project with the migration applied must exist **before** Nodir and Bhuvanesh swap the prototype's `data.js` for supabase-js (end of Day 1).
-2. The clickable prototype **is** the screen spec. Anastasiya refines its copy; nobody redesigns the flow after Day 1.
-3. Utkarsh's `POST /api/contacts/:id/process` must be up by Day 2 morning so Nodir can wire Processing → Review before the **midday M3 gate**.
-4. Sadaf's cost numbers need Utkarsh's actual per-call costs (Day 2 afternoon).
+**Milestone reality check:**
+
+| Gate | Official | Actual plan |
+|---|---|---|
+| M3 end-to-end slice | Sat midday | **Sat 18:00 hard target.** If the slice isn't green by then: Sun becomes fix-only on the thinnest path, and the demo narrows to QR + typed note (voice memo becomes a stretch goal). Nodir calls it. |
+| M4 freeze | Sun afternoon | unchanged |
+| M5 video · M6 submission | Sun | unchanged — video needs the flow stable by **Sun midday** |
+| M7 live demo | Mon | unchanged |
+
+**Hard dependencies (today):**
+1. Supabase project + applied migration + demo user (**Utkarsh, Sat morning**) → until then Nodir builds against the localStorage prototype; the swap is drop-in later.
+2. Processing endpoint skeleton (even with fake AI fields) → unblocks Nodir's Processing→Review wiring. **Skeleton before perfection.**
+3. Utkarsh's measured per-contact cost (Sat evening) → Sadaf's cost slide; the ⚠️ estimate stays until then.
+4. Anastasiya's demo script (Sun morning) → Nodir's video recording (Sun midday).
+5. Notion = Phase 2. Nothing this weekend touches it.
 
 ---
 
@@ -38,7 +49,7 @@
 | — | **Demo data** | — | seed rows for all three tables | `supabase/seed.sql` generated from `prototype/data.js` | Bhuvanesh | P-9 |
 
 ### The processing endpoint (step 6)
-`POST /api/contacts/:id/process`, runs server-side (stack per D1; a Supabase Edge Function also works):
+`POST /api/contacts/:id/process`, runs server-side (stack per D1; a Supabase Edge Function also works — identical contract, see [docs/BACKEND_BRIEF.md](docs/BACKEND_BRIEF.md)):
 1. Read the contact row; set `status='processing'`.
 2. If `note_kind='voice'`: download `audio_path` from Storage → speech-to-text (D7) → store the transcript in `note_text`.
 3. **LLM call 1:** note_text + name-from-slug + event name → `{name?, role?, company?, summary, discussed[≤3], needs, next_step, next_step_date?}`. Unknown = empty, never invented.
@@ -50,127 +61,93 @@ The prototype already uses the schema's table and column names. Replace the four
 
 ---
 
-## Nodir — PM · phone app frontend · PRD · pitch
+# Workstream A — product build
 
-### Day 1 (today)
-- [ ] Deliver the 13:00 idea pitch; log mentor feedback in PM_PLAN §9 within 15 min (AC-1.7)
-- [ ] PRD v1 ([PRD.md](PRD.md)) incl. the Phase 1 / Phase 2 note; run the 15-min lock-in on its §12 decision table, record outcomes in PM_PLAN §9 (AC-1.3)
-- [ ] Choose the frontend stack **with the mentor** together with Utkarsh (Supabase is decided); record in PM_PLAN §5; no switching after (AC-2.1)
-- [ ] GitHub repo live, all 5 members have access (AC-2.3)
-- [ ] Day 2 backlog written from the build map above; every member has a morning task (AC-2.5)
+## Utkarsh — backend (all of it; follow [docs/BACKEND_BRIEF.md §3](docs/BACKEND_BRIEF.md) in order)
 
-### Day 2 (Sat)
-- [ ] Screens 1–5 on supabase-js: event picker (create / edit / link), event home, scan with real camera QR (D3), project chips, note (text + voice upload)
-- [ ] Wire Processing → `POST /api/contacts/:id/process`; **end to end by midday** (M3, AC-3.1–3.3)
-- [ ] Review screen: every AI field editable, project re-assignable, Save sets `status='saved'` (P-6)
-- [ ] Projects tab: list + add project (P-5)
-- [ ] Evening: slides v1 skeleton in the official template with Anastasiya + Sadaf
+### Sat morning — unblock everyone first
+- [ ] Supabase project created (EU region); URL + anon key to Nodir and Bhuvanesh (brief step 1)
+- [ ] Migration `0001` applied; demo user created (D6); RLS smoke test — a second user sees zero rows (step 2)
+- [ ] AI key into server-side secrets only; `.env` in `.gitignore`; key shared only in the team channel (AC-2.2)
+- [ ] `parseProfile()` rules confirmed for LinkedIn / Xing / other (P-2). **No scraping, URL only** (PM_PLAN §9)
 
-### Day 3 (Sun — clocks went back 1 h)
-- [ ] Error state on Processing: message + Retry, note kept (P-7)
-- [ ] Run the non-builder usability test, fix what it surfaces (AC-4.2)
-- [ ] Call and enforce **feature freeze** in the afternoon (AC-4.3)
-- [ ] README updated: what it does, how to run, live URL (AC-6.1)
-- [ ] **Submit GitHub link + slides end of day** (M6)
+### Sat afternoon — the M3 slice
+- [ ] Processing endpoint **skeleton first**: statuses + error path with fake AI fields (brief step 6) → hand to Nodir immediately
+- [ ] Real AI inside: STT → LLM call 1 → `projects` read → LLM call 2, per the endpoint spec above (brief steps 7–8; prompts in `/prompts`, AC-6.5)
+- [ ] Both pages deployed to the HTTPS host; camera + mic work on the demo phone (D9/D10, brief step 9)
+- [ ] **18:00: slice green** — scan → note → AI fields on screen (M3, AC-3.1–3.3); show the mentor
+- [ ] Measure seconds + tokens per step; hand € per contact to Sadaf (brief step 10)
 
-### Day 4 (Mon)
-- [ ] Pre-flight checklist (PM_PLAN §8) done 1 h before the slot (AC-7.6)
-- [ ] Present; if the live demo fails, switch to video and keep talking
-
-## Anastasiya — ICP · GTM · positioning · CX-UX · demo script
-
-### Day 1 (today)
-- [ ] 3 Mom-Test conversations in the building; log in PM_PLAN §4; replace the ⚠️ numbers in IDEA_PITCH.md (AC-1.2)
-- [ ] ICP v1: one named role (Berlin freelance consultant/dev who networks for clients), not a sector
-- [ ] Walk the clickable prototype ([prototype/index.html](prototype/index.html)) end to end; list copy and flow issues for Nodir by end of day (AC-2.6)
-
-### Day 2 (Sat)
-- [ ] On-screen copy for every step: event picker, scan, project pick, note, review, dashboard empty states; a stranger must complete the flow unaided (feeds AC-4.2)
-- [ ] Positioning one-liner + "why switch" story with Sadaf
-- [ ] Demo script outline (AC-3.5): enter the event → scan → pick project → voice memo → review → dashboard. Story follows the freelancer, not the tech (AC-7.5)
-- [ ] 2 more interviews; pull one quotable quote for the slides (AC-7.2)
-
-### Day 3 (Sun)
-- [ ] Final demo script; rehearse the speaker ×2, timed (AC-7.5)
-- [ ] Record the ≤ 2-min demo video with Nodir; store locally + backup (M5, AC-5.1–5.2)
-- [ ] GTM slide: channel, first 10 customers; Notion / notes-app sync as the Phase 2 roadmap item
-
-### Day 4 (Mon)
-- [ ] Support Q&A on user, problem evidence, ICP (AC-7.2)
-
-## Bhuvanesh — demo data · dashboard · BI
-
-### Day 1 (today)
-- [ ] Demo data plan: the invented events, projects and personas in [prototype/data.js](prototype/data.js) become `supabase/seed.sql`; fake profile URLs only, **no real personal data** (AC-2.4, P-9)
-- [ ] Walk the dashboard prototype ([prototype/dashboard.html](prototype/dashboard.html)); confirm every column maps to the schema ([docs/DATA_MODEL.md §4](docs/DATA_MODEL.md))
-
-### Day 2 (Sat)
-- [ ] Load the seed into Utkarsh's Supabase project; check the RLS demo user sees exactly these rows
-- [ ] Dashboard on supabase-js: list, filters, sorting, detail panel edits, stage, event link (P-8)
-- [ ] Start the running-cost log per tool with Sadaf (PM_PLAN §7)
-
-### Day 3 (Sun)
-- [ ] Numbers for the slides from the dashboard: contacts captured, follow-ups due, € cost per contact (feeds AC-7.4)
-- [ ] Cost log complete for every tool / service (AC-4.4)
-- [ ] Stability check: main path 3 runs in a row on demo data without errors (AC-4.1)
-
-### Day 4 (Mon)
-- [ ] Reset before the demo: re-run `supabase/seed.sql` so the demo starts clean
-- [ ] Backup: dashboard already open in a second tab
-
-## Utkarsh — Supabase · AI processing
-
-### Day 1 (today)
-- [ ] Stack decision with mentor + Nodir (AC-2.1); API key in `.env`, `.env` in `.gitignore`, key shared only in the team channel (AC-2.2)
-- [ ] Supabase project; apply [0001_phase1_schema.sql](supabase/migrations/0001_phase1_schema.sql) (tables, RLS, `voice-notes` bucket); demo user per D6 so RLS works (one demo account or anonymous sign-in)
-- [ ] Share the project URL + publishable key with Nodir and Bhuvanesh (the secret key stays server-side)
-- [ ] Scan rules: `parseProfile()` for LinkedIn, Xing and other links (P-2). **No scraping, URL only** (PM_PLAN §9 decision)
-
-### Day 2 (Sat) — morning is the M3 critical path
-- [ ] `POST /api/contacts/:id/process`: voice memo → speech-to-text (D7); typed note goes straight to LLM call 1 (P-4)
-- [ ] LLM call 1: summary JSON (P-4); LLM call 2: best project from the `projects` table + reason + follow-up draft; keep a user-picked project (P-5)
-- [ ] **Show it running end to end to the mentor at the midday check-in** (AC-3.3)
-- [ ] Afternoon: failures set `status='error'` and keep the note and audio for retry (P-7)
-- [ ] Prompt + JSON schema validation: unknown fields stay empty, never invented (P-4)
-- [ ] Hand actual per-call costs to Sadaf (speech-to-text + 2 LLM calls)
-
-### Day 3 (Sun)
-- [ ] Deploy to a live HTTPS URL (camera and mic need it, D9); runs without a developer stepping in (AC-3.2, AC-6.1)
-- [ ] After freeze: fixes only (AC-4.3)
+### Sun
+- [ ] Failures set `status='error'`, note + audio kept, Retry works (P-7)
+- [ ] 3 clean runs in a row on demo data (AC-4.1); after freeze, fixes only (AC-4.3)
 - [ ] Repo history clean of secrets (AC-6.6)
 
-### Day 4 (Mon)
+### Mon
 - [ ] API key valid, credits left (pre-flight); on standby during the demo
 
-## Sadaf — pricing · competition · market
+## Nodir — frontend + demo video
 
-### Day 1 (today)
-- [ ] Competitor table v1: LinkedIn connect + notes app (status quo), HubSpot/Folk/Dex (too heavy), Blinq/HiHello (card swap, no conversation capture); price and gap per row
-- [ ] Sit in on Anastasiya's interviews; test the €9.99/month hypothesis; replace the ⚠️ in IDEA_PITCH.md #6
+### Sat (don't wait for the backend — prototype's localStorage layer keeps working)
+- [ ] Real camera QR scan (html5-qrcode, D3) + `parseProfile()` on the scan screen
+- [ ] Voice memo via MediaRecorder (⚠️ Safari records `audio/mp4`, Chrome `webm` — name by actual mimeType)
+- [ ] When keys arrive: swap the four `data.js` functions → supabase-js (brief step 4); sign in demo user on load; screens unchanged
+- [ ] Wire Processing → the endpoint, poll the row every 2 s until `status != 'processing'`; Review fully editable; Save → `status='saved'` (P-6)
+- [ ] Evening: full flow on the demo phone, end to end
 
-### Day 2 (Sat)
-- [ ] Pricing + cost model v1 (AC-3.4): €9.99/month freelancer, €19/seat teams later; unit cost ~€0.01–0.015 per contact from Utkarsh's real numbers
-- [ ] Market one-pager: freelancers/consultants in DE who network regularly (rough TAM/SAM)
-- [ ] "Why switch" slide with Anastasiya: one client won pays for years of the app (AC-7.3)
+### Sun
+- [ ] Error + empty states (P-7); non-builder usability test, fix what it surfaces (AC-4.2)
+- [ ] Call and enforce **feature freeze** in the afternoon (AC-4.3)
+- [ ] **Record the ≤ 2-min demo video** to Anastasiya's script; store locally + backup (M5, AC-5.1–5.2)
+- [ ] README: what it does, how to run, live URL (AC-6.1) · **submit GitHub + slides EOD** (M6)
 
-### Day 3 (Sun)
-- [ ] Final running-cost breakdown with Bhuvanesh, incl. dependencies + risks: LLM / speech-to-text provider, Supabase (database, storage, auth), hosting; Notion API only from Phase 2 (AC-4.4, AC-7.4)
-- [ ] Business slides final in the official template: user, problem, price, cost, why switch, dependencies (AC-6.4)
+### Mon
+- [ ] Pre-flight checklist 1 h before the slot (AC-7.6); present; video fallback ready
 
-### Day 4 (Mon)
-- [ ] Field judge questions on pricing, competition, market size (AC-7.3)
+## Bhuvanesh — build support (mornings with Workstream A)
+
+- [ ] Sat: `supabase/seed.sql` from [prototype/data.js](prototype/data.js) — demo user, 1 event, 4–5 projects **with 1–2-sentence descriptions** (the AI matches on them), fake personas only (AC-2.4, P-9); load after the migration, verify RLS
+- [ ] Sat: dashboard.html onto supabase-js — list, filters, sorting, detail edits, stage (P-8)
+- [ ] Sun: verify every AI field lands in the row after processing (P-5/P-6) · reset script so the demo starts clean · backup dashboard tab open
+
+---
+
+# Workstream B — business & story
+
+## Sadaf — economics · pricing · competition · market · **slides lead**
+
+> Detail, formulas and templates: [docs/BUSINESS_TASKS.md §S1–S5](docs/BUSINESS_TASKS.md)
+
+- [ ] Sat: unit economics skeleton now, real numbers when Utkarsh delivers (evening) · pricing ladder + WTP probes in interviews · competitor table verified · market one-pager
+- [ ] Sat evening: **slides v1 in the official template** (Gamma draft ok) — all 11 slots from [SLIDES_BRIEF.md](SLIDES_BRIEF.md), placeholders where numbers are pending
+- [ ] Sun: cost + dependencies slide final with Bhuvanesh (AC-4.4, AC-7.4) · final deck for submission (AC-6.3, AC-6.4) · judge Q&A prep (10 questions)
+- [ ] Mon: field business questions (AC-7.3)
+
+## Anastasiya — research · ICP · positioning · GTM · demo script
+
+> Detail, scripts and templates: [docs/BUSINESS_TASKS.md §A1–A5](docs/BUSINESS_TASKS.md)
+
+- [ ] Sat: 3+ interviews, replace the ⚠️ numbers in IDEA_PITCH.md and the deck (AC-1.2, AC-7.2) · ICP one-pager · positioning one-liner + objection answers · UX copy pass on the real screens (feeds AC-4.2)
+- [ ] Sat evening: demo script outline to Nodir (AC-3.5)
+- [ ] Sun: 2 interviews · usability test with Nodir · final script + 2 timed rehearsals (AC-7.5) · GTM slide · demo video with Nodir (M5)
+- [ ] Mon: Q&A on user, problem evidence, ICP (AC-7.2)
+
+## Bhuvanesh — business support (afternoons with Workstream B)
+
+- [ ] Running-cost log with Sadaf: every tool, plan, usage, €/month (PM_PLAN §7, AC-4.4)
+- [ ] Sun: dashboard-derived numbers for the slides — contacts captured, follow-ups due, € per contact (AC-7.4)
 
 ---
 
 ## Shared — whole team
 
 - [ ] Daily: 10-min sync at start of day + before each mentor check-in
-- [ ] Day 3: 15-min walkthrough so **every member can explain every part**: screens, schema, both prompts (AC-6.5, AI policy, judges check this)
-- [ ] Every tool used goes in the tool log with "who can explain it" (PM_PLAN §7)
-- [ ] Decisions and mentor feedback go in PM_PLAN §9 the same day
-- [ ] Sunday morning: re-check the schedule, clocks went back overnight (DST risk, PM_PLAN §8)
+- [ ] Sun: 15-min walkthrough so **every member can explain every part**: screens, schema, both prompts (AC-6.5, AI policy — judges check this)
+- [ ] Every tool used goes in the tool log with "who can explain it" (PM_PLAN §7, [SLIDES_BRIEF.md §10](SLIDES_BRIEF.md))
+- [ ] Decisions and mentor feedback into PM_PLAN §9 the same day
+- [ ] Sunday morning: re-check the schedule — clocks went back overnight (DST risk, PM_PLAN §8)
 
 ## Later (Phase 2, not this weekend)
-- Notion / notes-app sync: projects in, contacts out ([docs/DATA_MODEL.md §5](docs/DATA_MODEL.md))
+- Notion / notes-app sync: projects in, contacts out ([docs/DATA_MODEL.md §5](docs/DATA_MODEL.md), [docs/ARCHITECTURE.md §3](docs/ARCHITECTURE.md))
 - Badge / business-card photo and vCard QR (D4)
 - Reminders when a follow-up is due

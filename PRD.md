@@ -141,6 +141,8 @@ notion_page_id
 
 ## 10. Architecture
 
+> Component views for current / Phase 1 / Phase 2: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 One small service + one page frontend (BPMN flow agreed in session, 23 Oct):
 
 ```
