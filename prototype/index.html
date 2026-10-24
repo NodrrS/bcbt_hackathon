@@ -330,7 +330,7 @@ function freshUi() {
   return {
     tab: 'today', screen: 'today', eventId, pickId: null, eventForm: null,
     contactId: null, draft: null, from: null,
-    noteMode: 'text', noteText: '', rec: { status: 'idle', secs: 0, words: 0 },
+    noteMode: 'voice', noteText: '', rec: { status: 'idle', secs: 0, words: 0 },
     justScanned: null, scanMsg: null,
   };
 }
@@ -513,8 +513,8 @@ const SCREENS = {
       </div>
       <div class="title" style="margin-top:14px">How did it go with ${esc((c.name || 'them').split(' ')[0])}?</div>
       <div class="seg" role="tablist">
-        <button class="${textMode ? 'on' : ''}" onclick="setNoteMode('text')">✍️ Write a note</button>
         <button class="${textMode ? '' : 'on'}" onclick="setNoteMode('voice')">🎙️ Voice memo</button>
+        <button class="${textMode ? 'on' : ''}" onclick="setNoteMode('text')">✍️ Write a note</button>
       </div>
       <div class="prompts"><span>Who are they?</span><span>What do they need?</span><span>What did you agree?</span></div>
       ${textMode ? `
@@ -822,7 +822,7 @@ function scanned(raw) {
 
 // ---------- actions: note ----------
 function openNote(id) {
-  ui.contactId = id; ui.noteMode = 'text'; ui.noteText = '';
+  ui.contactId = id; ui.noteMode = 'voice'; ui.noteText = '';
   ui.rec = { status: 'idle', secs: 0, words: 0 };
   go('note');
 }
