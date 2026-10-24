@@ -41,7 +41,7 @@
 | 2 | **Event home** | See people scanned here, "Needs a note" badges, open / add / edit the event link, Leave | `contacts` where event_id; `events.url` | supabase-js | Nodir | P-1 |
 | 3 | **Scan** | Point camera at a QR | `contacts` insert: source, profile_url, profile_slug, name (from slug), event_id, scanned_at, `status='captured'`; same person + event = existing row (unique index) | Camera QR library (D3) + `parseProfile()` from data.js; supabase-js insert | Nodir | P-2 |
 | 4 | **Project pick** (note screen, optional) | Tap a project, "Let AI suggest" or "No project" | `contacts`: project_id, `project_set_by='user'`, match_reason | supabase-js update | Nodir | P-3 |
-| 5 | **Note** | Write a note **or** record a voice memo; "Later" skips | `contacts`: note_kind, note_text (typed) or audio_path; audio → Storage `voice-notes/<user_id>/<contact_id>.webm` | supabase-js update + Storage upload | Nodir | P-4 |
+| 5 | **Note** | Write a note **or** record a voice memo; "Later" skips | `contacts`: note_kind + note_text; audio sent in memory to Edge Function on stop, not stored | Supabase Functions invoke + multipart audio | Nodir | P-4 |
 | 6 | **Processing** | Wait ≤ 15 s | `status='processing'` → AI fields → `status='review'`; failure → `status='error'`, note kept | `POST /api/contacts/:id/process` (server, key never in the browser) | Utkarsh | P-5, P-7 |
 | 7 | **Review** | Edit any field, change the project, Save | name, role, company, summary, discussed[≤3], needs, project_id, project_set_by, match_reason, next_step, next_step_date, follow_up_draft, `status='saved'` | supabase-js update | Nodir | P-6 |
 | 8 | **Projects tab** | See projects, add one (name + description) | `projects`: name, description, emoji | supabase-js select / insert | Nodir | P-5 |
@@ -51,7 +51,7 @@
 ### The processing endpoint (step 6)
 `POST /api/contacts/:id/process`, runs server-side (stack per D1; a Supabase Edge Function also works — identical contract, see [docs/BACKEND_BRIEF.md](docs/BACKEND_BRIEF.md)):
 1. Read the contact row; set `status='processing'`.
-2. If `note_kind='voice'`: download `audio_path` from Storage → speech-to-text (D7) → store the transcript in `note_text`.
+2. Voice transcription runs when recording stops; return transcript to the editable note field. Save `note_text` when the user taps Process.
 3. **LLM call 1:** note_text + name-from-slug + event name → `{name?, role?, company?, summary, discussed[≤3], needs, next_step, next_step_date?}`. Unknown = empty, never invented.
 4. **LLM call 2:** call-1 JSON + the user's `projects` (name + description, `archived=false`) → `{project_id | null, match_reason (quotes the note), match_confidence, follow_up_draft}`. **If `project_set_by='user'`, keep the user's project** and only draft the follow-up.
 5. Write the fields, set `status='review'`, return the row. On any failure: `status='error'`, note and audio stay, the app offers Retry.

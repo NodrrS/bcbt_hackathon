@@ -17,7 +17,7 @@
 <text x="385" y="162" text-anchor="middle" font-size="12" fill="#0F6E56">events · projects · contacts</text>
 <rect x="270" y="210" width="230" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.75"/>
 <text x="385" y="233" text-anchor="middle" font-size="14" font-weight="600" fill="#085041">Storage</text>
-<text x="385" y="252" text-anchor="middle" font-size="12" fill="#0F6E56">voice-notes bucket, private</text>
+<text x="385" y="252" text-anchor="middle" font-size="12" fill="#0F6E56">voice transcript returned; audio not stored</text>
 <rect x="270" y="300" width="230" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.75"/>
 <text x="385" y="323" text-anchor="middle" font-size="14" font-weight="600" fill="#085041">Processing endpoint</text>
 <text x="385" y="342" text-anchor="middle" font-size="12" fill="#0F6E56">STT → LLM ×2 → write back</text>

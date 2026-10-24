@@ -154,7 +154,7 @@ GET  /api/contacts?day=today  —                              → list
 ```
 
 - Single process, synchronous pipeline (no queue at hackathon scale).
-- Notion: one integration token, projects list cached in memory (refresh on demand). ⚠️ Phase 1: Supabase (Postgres + Storage for voice memos, RLS per user) instead; projects are read from the `projects` table. Notion sync design for Phase 2: [docs/DATA_MODEL.md §5](docs/DATA_MODEL.md).
+- Notion: one integration token, projects list cached in memory (refresh on demand). ⚠️ Phase 1: Supabase Postgres (RLS per user); projects are read from the `projects` table. Voice audio is sent to the Edge Function for transcription on stop and is not stored; transcript text is saved when the user taps Process. Notion sync design for Phase 2: [docs/DATA_MODEL.md §5](docs/DATA_MODEL.md).
 - Stack: 🔒 D1 · Hosting with HTTPS (mic/camera need it): 🔒 D9
 
 ## 11. Risks

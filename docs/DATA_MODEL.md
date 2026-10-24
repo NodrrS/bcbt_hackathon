@@ -12,7 +12,7 @@ Today: choose event (edit its details if needed) ─or─ create event ──▶
 Scan QR ──▶ row INSERTED at once (status = captured): profile_url, profile_slug, name-from-slug, event_id
    │
    ▼
-Note: ✍️ type it  ─or─  🎙️ voice memo (audio → Storage, transcript → note_text)      [Skip = note later]
+Note: ✍️ type it  ─or─  🎙️ voice memo (audio → Edge Function → transcript in note_text)      [Skip = note later]
    │
    ▼
 Processing (status = processing): LLM summarises note_text, compares with the user's projects table,
@@ -29,7 +29,7 @@ Dashboard: filter, sort, edit everything later (stage, project, next step, notes
 |---|---|
 | Scan | `source`, `profile_url`, `profile_slug`, `name`, `event_id`, `scanned_at`, `status='captured'` |
 | Project pick (optional, right after scan) | `project_id`, `project_set_by='user'`, `match_reason`; processing then keeps this project instead of the AI's suggestion |
-| Note | `note_kind`, `note_text`, `audio_path` (voice only) |
+| Note | `note_kind`, `note_text` (voice transcript); `audio_path` is legacy only |
 | Processing | `status='processing'` → AI fields: `summary`, `discussed[≤3]`, `needs`, `project_id`, `match_reason`, `match_confidence`, `project_set_by='ai'`, `next_step`, `next_step_date`, `follow_up_draft`, then `status='review'` |
 | Review / Save | any edited field; changing the project sets `project_set_by='user'`; `status='saved'` |
 | Dashboard | `stage`, `user_notes` and any field above |
@@ -62,7 +62,7 @@ Dashboard: filter, sort, edit everything later (stage, project, next step, notes
 |---|---|
 | Keys | id, user_id, event_id → events, project_id → projects |
 | Scan | source (`qr_linkedin` · `qr_xing` · `qr_other` · `manual`), profile_url, profile_slug, name, role, company, scanned_at |
-| Note | note_kind (`text` · `voice`), note_text, audio_path |
+| Note | note_kind (`text` · `voice`), note_text, `audio_path` (legacy rows only) |
 | AI output | summary, discussed text[≤3], needs, match_reason, match_confidence (`high` · `medium` · `low`), project_set_by (`ai` · `user`), next_step, next_step_date, follow_up_draft |
 | Management | status (`captured` · `processing` · `review` · `saved` · `error`), stage (`to_follow_up` · `followed_up` · `meeting_set` · `won` · `not_relevant`), user_notes |
 | Phase 2 | external_id, external_synced_at |
@@ -72,7 +72,7 @@ Two different "states", on purpose:
 - **status** = where the row is in the capture pipeline (the phone app cares).
 - **stage** = where the relationship is (the dashboard cares).
 
-Rules in the schema: one row per person per event (`unique (user_id, event_id, profile_url)`), `discussed` max 3 items, RLS so every user only sees their own rows, private `voice-notes` storage bucket.
+Rules in the schema: one row per person per event (`unique (user_id, event_id, profile_url)`), `discussed` max 3 items, RLS so every user only sees their own rows. The private `voice-notes` bucket remains for cleaning up recordings created by the earlier flow; new recordings are not stored there.
 
 ## 3. Frontend mirror
 

@@ -9,7 +9,7 @@
 | | Current (prototype) | Phase 1 (hackathon, Sat–Mon) | Phase 2 (post-hackathon) |
 |---|---|---|---|
 | Frontend | `prototype/index.html` + `dashboard.html` | same screens, real data | same + connector settings |
-| Data | `data.js` arrays in localStorage | **Supabase** Postgres + Storage (RLS) | Supabase stays source of truth |
+| Data | `data.js` arrays in localStorage | **Supabase** Postgres (RLS); voice audio sent to Edge Function, not stored | Supabase stays source of truth |
 | AI | simulated | Edge Function: STT + 2 LLM calls | same |
 | Projects | seeded in `data.js` | typed in the app, `projects` table | **pulled from Notion** (OAuth) |
 | Contacts end up in | localStorage | Supabase (`status='saved'`) | Supabase **+ mirrored to Notion** |
@@ -38,28 +38,25 @@ flowchart LR
   end
   subgraph supa["Supabase — auth: single demo user · RLS on every table"]
     pg[("Postgres<br/>events · projects · contacts")]
-    st["Storage<br/>voice-notes bucket (private)"]
     fn["Edge Function process-note"]
   end
   ai["AI provider (D2)<br/>STT + LLM call 1 + LLM call 2"]
   app -- "insert on scan (status=captured)" --> pg
-  app -- "upload .webm memo" --> st
-  app -- "invoke with contact_id" --> fn
+  app -- "send in-memory audio on stop" --> fn
   dash -- "select / update" --> pg
-  fn -- "read audio" --> st
-  fn -- "transcribe + summarize + match" --> ai
+  fn -- "transcribe on stop; summarize + match on Process" --> ai
   fn -- "AI fields, status=review" --> pg
 ```
 
 **Request flow (maps to the statuses in the schema):**
 
 1. **Scan** → client inserts the `contacts` row immediately: `source`, `profile_url`, `profile_slug`, name-from-slug, `event_id` → `status='captured'`. No external call; < 3 s (P-1).
-2. **Note** → typed text goes straight into `note_text`; a voice memo uploads to the `voice-notes` bucket (`<user_id>/<contact_id>.webm`), then the client invokes `process-note`.
-3. **process-note Edge Function** (`status='processing'`): downloads audio → STT → `note_text`; LLM call 1 → summary JSON; reads the user's `projects`; LLM call 2 → `project_id` suggestion + `match_reason` + `match_confidence` + `follow_up_draft`; writes everything back → `status='review'`. If the user picked a project at scan time (`project_set_by='user'`), the AI's suggestion does not overwrite it. Budget ≤ 15 s (P-2).
+2. **Note** → typed text stays in the form until Process. A voice memo is sent from memory to `process-note` on stop; Whisper returns a transcript for the editable note box. The audio is not saved.
+3. **process-note Edge Function** (after Process, `status='processing'`): LLM call 1 → summary JSON; reads the user's `projects`; LLM call 2 → `project_id` suggestion + `match_reason` + `match_confidence` + `follow_up_draft`; writes results and note text back → `status='review'`. If the user picked a project at scan time (`project_set_by='user'`), the AI's suggestion does not overwrite it.
 4. **Review** → user edits any field, assigns/changes project → `status='saved'`.
 5. **Dashboard** → reads/updates the same rows: `stage`, `user_notes`, next steps. Pipeline `status` and relationship `stage` are deliberately separate columns.
 
-**Security/cost:** AI + service keys live only in Edge Function env vars (AC-2.2, P-6); the browser holds the anon key + RLS. Marginal cost ≈ €0.01–0.02 per contact (20 s STT + 2 short LLM calls). Failure at any step → `status='error'`, audio and fields retained, one-tap retry (P-5/FR-10).
+**Security/cost:** AI + service keys live only in Edge Function env vars (AC-2.2, P-6); the browser holds the anon key + RLS. Audio is forwarded to OpenRouter for transcription and discarded after the request; only transcript text is saved when the user taps Process. A transcription failure requires recording again.
 
 ## 3. Phase 2 — Notion and notes-app sync
 

@@ -3,12 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Syncy prototype</title>
+<title>Syncy</title>
 <!--
-  Clickable phone prototype, Phase 1 flow (docs/DATA_MODEL.md §1):
-  choose / create event → enter event → scan → typed note or voice memo → processing → review & assign project → saved.
-  Rows are read and written through data.js, a localStorage mirror of the Supabase schema, shared with dashboard.html.
-  Everything is demo data. simulateAI() stands in for the real LLM call; db.* stands in for supabase-js.
+  Phase 1 phone flow: choose / create event → scan → note → AI processing → review and save.
+  data.js selects Supabase when prototype/config.js exists; otherwise it runs the local demo.
 -->
 <style>
 :root {
@@ -255,7 +253,7 @@ ul.bul li { margin: 3px 0; }
 <aside class="side">
   <div class="brand" style="margin-bottom:14px"><span class="logo"></span>Syncy</div>
   <h1>From "who was that?" to a next step.</h1>
-  <p>Clickable prototype of the Phase 1 flow:</p>
+  <p id="sideIntro">Clickable prototype of the Phase 1 flow:</p>
   <ol id="sideSteps">
     <li data-s="picker">Choose or create the event, then enter it</li>
     <li data-s="scan">Scan a QR: link + name are saved at once</li>
@@ -264,20 +262,23 @@ ul.bul li { margin: 3px 0; }
     <li data-s="review">Edit, assign a project, save</li>
     <li data-s="saved">Manage everything in the dashboard</li>
   </ol>
-  <div class="note">Demo data only: invented people and fake profile URLs. AI output is simulated. Rows are stored in this browser with the same columns as the Supabase tables.</div>
+  <div class="note" id="sideNote">Demo data only: invented people and fake profile URLs. AI output is simulated. Rows are stored in this browser with the same columns as the Supabase tables.</div>
   <div class="links">
     <a class="btn" href="dashboard.html">Open dashboard →</a>
-    <button class="btn" onclick="resetDemo()">↺ Reset demo</button>
+    <button class="btn" id="resetButton" onclick="resetDemo()">↺ Reset demo</button>
   </div>
 </aside>
 
 <div class="phone">
   <div class="statusbar"><span>9:41</span><span>●●● ᯤ ▮</span></div>
-  <div class="demo-banner">Prototype · demo data · AI output simulated</div>
+  <div class="demo-banner" id="modeBanner">Prototype · demo data · AI output simulated</div>
   <main class="screen" id="screen"></main>
   <nav class="tabbar" id="tabbar"></nav>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+<script src="config.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="data.js"></script>
 <script>
 const ACTIVE_KEY = 'syncy-active-event';
@@ -311,12 +312,13 @@ const PERSONAS = [
     },
   },
 ];
-const personaFor = url => PERSONAS.find(p => p.url === url);
+const personaFor = url => PERSONAS.find(p => parseProfile(p.url).profile_url === url);
 
 const COLORS = ['#e4602a', '#2c8a57', '#0a66c2', '#7a4bc0', '#c2410c', '#0f766e'];
 const STAGE_LABEL = { to_follow_up: 'To follow up', followed_up: 'Followed up', meeting_set: 'Meeting set', won: 'Won', not_relevant: 'Not relevant' };
 
 let ui;
+window.syncyVoiceDebug = (id, stage, details = {}) => console.info('[VOICE-DEBUG]', id, stage, details);
 function freshUi() {
   let eventId = null;
   try { eventId = localStorage.getItem(ACTIVE_KEY); } catch (e) { /* no storage: start at the picker */ }
@@ -386,6 +388,7 @@ const ICONS = {
 
 // ---------- navigation ----------
 function go(screen) {
+  if (ui.screen === 'scan' && screen !== 'scan') stopCameraScan();
   clearTimers();
   if (['today', 'contacts', 'projects'].includes(screen)) ui.tab = screen;
   ui.screen = screen;
@@ -465,7 +468,8 @@ const SCREENS = {
     const hit = ui.justScanned && db.get('contacts', ui.justScanned);
     return `
       <div class="flowbar"><button class="icon-btn" onclick="go('today')">✕</button><span class="step">${esc(ev.name)} · Scan</span><span style="width:36px"></span></div>
-      <div class="viewfinder ${hit ? 'hit' : ''}">
+      ${db.live && !hit ? '<div id="qr-reader" style="width:100%;margin:14px 0;border-radius:16px;overflow:hidden"></div>' : ''}
+      <div class="viewfinder ${hit ? 'hit' : ''}" ${db.live ? 'style="display:none"' : ''}>
         ${qrSvg(hit ? hit.profile_url : 'placeholder')}
         <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
         <span class="line"></span>
@@ -475,13 +479,14 @@ const SCREENS = {
            <div class="saved-row"><div><span>name</span>${esc(hit.name || '—')}</div><div><span>profile_slug</span>${esc(hit.profile_slug)}</div><div><span>profile_url</span><code>${esc(hit.profile_url)}</code></div></div>`
         : '<div>Point the camera at a LinkedIn or Xing QR code</div>'}</div>
       ${hit ? '' : `<div class="demo-pick">
+        ${db.live ? '' : `
         <p>Demo: no camera in the prototype. Tap a profile to simulate a scan…</p>
         ${PERSONAS.map(p => {
           const parsed = parseProfile(p.url);
           const taken = db.findContact(ui.eventId, parsed.profile_url);
           return `<button class="chip" ${taken ? 'disabled' : ''} onclick="scanned('${p.url}')">
             ${avatar(parsed.name)}<span style="flex:1">${esc(parsed.name)}<small>${taken ? 'Already scanned at this event' : esc(parsed.profile_url)}</small></span>${srcBadge(parsed.source)}</button>`;
-        }).join('')}
+        }).join('')}`}
         <p style="margin-top:12px">…or paste any profile link the QR would contain:</p>
         <div class="urlrow"><input id="urlIn" placeholder="linkedin.com/in/max-mustermann-12ab" onkeydown="if(event.key==='Enter')scanUrl()"><button onclick="scanUrl()">Scan</button></div>
       </div>`}`;
@@ -489,13 +494,15 @@ const SCREENS = {
 
   note() {
     const c = db.get('contacts', ui.contactId);
-    const persona = personaFor(c.profile_url);
+    const persona = db.live ? null : personaFor(c.profile_url);
     const r = ui.rec;
     const textMode = ui.noteMode === 'text';
     const voiceDone = r.status === 'done';
-    const canProcess = textMode ? ui.noteText.trim().length > 0 : voiceDone;
+    const voiceBusy = r.status === 'transcribing';
+    const voiceFailed = r.status === 'error';
+    const canProcess = textMode ? ui.noteText.trim().length > 0 : voiceDone && ui.noteText.trim().length > 0;
     return `
-      <div class="flowbar"><button class="icon-btn" onclick="go('today')">✕</button><span class="step">Note</span><span style="width:36px"></span></div>
+      <div class="flowbar"><button class="icon-btn" ${voiceBusy ? 'disabled' : ''} onclick="go('today')">✕</button><span class="step">Note</span><span style="width:36px"></span></div>
       <div class="linkchip">${srcBadge(c.source)}<code>${esc(c.profile_url)}</code><span class="pill ok">✓ saved</span></div>
       <div class="label">Which project is ${esc((c.name || 'this person').split(' ')[0])} for? <span class="ai">optional</span></div>
       <div class="pchips" id="pchips">
@@ -505,27 +512,29 @@ const SCREENS = {
       </div>
       <div class="title" style="margin-top:14px">How did it go with ${esc((c.name || 'them').split(' ')[0])}?</div>
       <div class="seg" role="tablist">
-        <button class="${textMode ? 'on' : ''}" onclick="setNoteMode('text')">✍️ Write a note</button>
-        <button class="${textMode ? '' : 'on'}" onclick="setNoteMode('voice')">🎙️ Voice memo</button>
+        <button class="${textMode ? 'on' : ''}" ${voiceBusy ? 'disabled' : ''} onclick="setNoteMode('text')">✍️ Write a note</button>
+        <button class="${textMode ? '' : 'on'}" ${voiceBusy ? 'disabled' : ''} onclick="setNoteMode('voice')">🎙️ Voice memo</button>
       </div>
       <div class="prompts"><span>Who are they?</span><span>What do they need?</span><span>What did you agree?</span></div>
       ${textMode ? `
         <textarea class="edit" id="noteIn" rows="7" placeholder="e.g. Runs procurement at X, needs a React dev from January, call him Tuesday." oninput="ui.noteText=this.value;document.getElementById('procBtn').disabled=!this.value.trim()">${esc(ui.noteText)}</textarea>
         ${persona ? `<button class="linkbtn" style="margin-top:6px" onclick="useDemoNote()">Use demo note</button>` : ''}`
       : `
-        ${voiceDone ? '' : `<div class="mic-wrap">
+        ${voiceDone || voiceBusy ? '' : `<div class="mic-wrap">
           <button class="mic ${r.status === 'recording' ? 'rec' : ''}" onclick="toggleRec()" aria-label="${r.status === 'recording' ? 'Stop recording' : 'Start recording'}">${r.status === 'recording' ? '<span class="stopicon"></span>' : ICONS.mic}</button>
           <div class="timer" id="timer">${r.status === 'recording' ? '0:00' : 'Tap to record'}</div>
           <div class="wave" id="wave">${'<i></i>'.repeat(28)}</div>
         </div>`}
         <div class="card transcript">${voiceDone
           ? `<div class="label" style="margin-top:0">Transcript <span class="ai">edit if needed</span></div>
-             <textarea class="edit" rows="6" oninput="ui.noteText=this.value">${esc(ui.noteText)}</textarea>`
-          : `<span class="${r.status === 'recording' ? '' : 'muted'}" id="txlive">${r.status === 'recording' ? '' : 'Your words appear here as you speak.'}</span>${r.status === 'recording' ? '<span class="caret"></span>' : ''}`}
+             <textarea class="edit" rows="6" oninput="ui.noteText=this.value;document.getElementById('procBtn').disabled=!this.value.trim()">${esc(ui.noteText)}</textarea>`
+          : voiceBusy ? '<span class="muted">Transcribing your recording…</span>'
+          : voiceFailed ? `<span style="color:#b42318">${esc(ui.error || 'Transcription failed. Record again and retry.')}</span>`
+          : `<span class="${r.status === 'recording' ? '' : 'muted'}" id="txlive">${r.status === 'recording' ? 'Recording audio…' : 'Tap the microphone to record.'}</span>${r.status === 'recording' ? '<span class="caret"></span>' : ''}`}
         </div>
-        ${voiceDone ? `<button class="linkbtn" style="margin-top:6px" onclick="rerecord()">↺ Record again</button>` : ''}`}
+        ${voiceDone || voiceFailed ? `<button class="linkbtn" style="margin-top:6px" onclick="rerecord()">↺ Record again</button>` : ''}`}
       <div class="row" style="margin-top:16px">
-        <button class="btn" style="flex:0 0 auto" onclick="go('today')">Later</button>
+        <button class="btn" style="flex:0 0 auto" ${voiceBusy ? 'disabled' : ''} onclick="go('today')">Later</button>
         <button class="btn btn-primary" id="procBtn" ${canProcess ? '' : 'disabled'} onclick="processNote()">✨ Process</button>
       </div>
       <p class="muted small" style="margin-top:8px">“Later” keeps ${esc((c.name || 'the contact').split(' ')[0])} on your list with a “Needs a note” badge.</p>`;
@@ -533,6 +542,7 @@ const SCREENS = {
 
   processing() {
     const c = db.get('contacts', ui.contactId);
+    if (c.status === 'error') return `<div class="proc"><div class="title">Processing stopped</div><p class="sub">${esc(ui.error || 'Your note is still available. Try again.')}</p><button class="btn btn-primary" onclick="runLiveProcess()">Retry</button><button class="btn" onclick="go('note')">Back to note</button></div>`;
     return `
       <div class="proc">
         <div class="orb"></div>
@@ -602,7 +612,7 @@ const SCREENS = {
     const c = db.get('contacts', ui.contactId);
     const p = proj(c.project_id), ev = event(c.event_id);
     return `
-      <div class="flowbar"><button class="icon-btn" onclick="go(ui.tab)">‹</button><span class="step">${ev ? esc(ev.name) : ''}</span><button class="btn btn-sm" onclick="editContact()">Edit</button></div>
+      <div class="flowbar"><button class="icon-btn" onclick="go(ui.tab)">‹</button><span class="step">${ev ? esc(ev.name) : ''}</span><span><button class="btn btn-sm" onclick="editContact()">Edit</button> <button class="btn btn-sm" style="color:#b42318" onclick="deleteCurrentContact()">Delete</button></span></div>
       <div class="who">${avatar(c.name, 54)}<div style="flex:1"><div class="n">${esc(c.name)}</div><div class="r">${esc([c.role, c.company].filter(Boolean).join(' · '))}</div></div>${srcBadge(c.source)}</div>
       <div class="linkchip" style="margin-top:12px">${srcBadge(c.source)}<code>${esc(c.profile_url)}</code></div>
       <div class="match"><div class="muted small">Project</div>
@@ -679,13 +689,14 @@ function eventHome() {
 
 // ---------- after-render hooks ----------
 function procSteps(c) {
-  return ['Row saved in Supabase', ...(c.note_kind === 'voice' ? ['Transcribing your voice memo'] : []),
-    'Summarising your note',
+  return ['Summarising your note',
     c.project_set_by === 'user' ? 'Keeping the project you picked' : `Comparing with your ${projects().length} projects`,
     'Drafting a follow-up'];
 }
 const AFTER = {
+  scan() { if (db.live && !ui.justScanned && window.Html5Qrcode && !ui.scanner) startCameraScan(); },
   processing() {
+    if (db.live) { if (!ui.processing && db.get('contacts', ui.contactId).status !== 'error') runLiveProcess(); return; }
     const lis = [...document.querySelectorAll('#steps li')];
     lis.forEach((li, i) => {
       later(() => { li.className = 'doing'; }, i * 650);
@@ -722,13 +733,17 @@ function openEventForm(which) {
   document.getElementById('evName').focus();
 }
 // Creates the event (ui.eventForm = 'new') or updates the one being edited.
-function saveEvent() {
+async function saveEvent() {
   const name = document.getElementById('evName').value.trim();
   if (!name) { document.getElementById('evName').focus(); return; }
   const url = readEventUrl('evUrl');
   if (url === undefined) return;
   const fields = { name, location: document.getElementById('evLoc').value.trim() || null, url, starts_on: document.getElementById('evDate').value || db.TODAY };
   const ev = ui.eventForm === 'new' ? db.insert('events', fields) : db.update('events', ui.eventForm, fields);
+  if (db.live) {
+    try { await db.flush('events', ev.id); }
+    catch { document.getElementById('evUrlErr').textContent = 'Could not save the event. Check your connection and try again.'; return; }
+  }
   ui.pickId = ev.id; ui.eventForm = null;
   render();
 }
@@ -744,13 +759,24 @@ function leaveEvent() { setActiveEvent(null); ui.editUrl = false; go('today'); }
 
 // ---------- actions: scan ----------
 function startScan() { ui.justScanned = null; go('scan'); }
+function startCameraScan() {
+  if (ui.scanner || !document.getElementById('qr-reader')) return;
+  ui.scanner = new Html5Qrcode('qr-reader');
+  ui.scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 240, height: 240 } }, text => {
+    stopCameraScan(); scanned(text);
+  }, () => {}).catch(error => { ui.error = `Camera unavailable: ${error.message}`; alert(ui.error); });
+}
+function stopCameraScan() { if (ui.scanner) { const scanner = ui.scanner; ui.scanner = null; scanner.stop().catch(() => {}).finally(() => scanner.clear()); } }
 function scanUrl() {
   const v = document.getElementById('urlIn').value.trim();
   if (v) scanned(v);
 }
 // Scan = save immediately: profile_url, slug and name-from-slug (FR-1, P-1).
 function scanned(raw) {
-  const parsed = parseProfile(raw);
+  stopCameraScan();
+  const canonical = normalizeUrl(raw);
+  if (!canonical) { alert('That QR code does not contain a valid web profile link.'); return; }
+  const parsed = parseProfile(canonical);
   let row = db.findContact(ui.eventId, parsed.profile_url);
   if (!row) {
     row = db.insert('contacts', { ...parsed, event_id: ui.eventId, scanned_at: nowIso(), status: 'captured' });
@@ -787,6 +813,7 @@ function useDemoNote() {
   render();
 }
 function toggleRec() {
+  if (db.live) return recordLive();
   const r = ui.rec;
   if (r.status === 'idle') {
     r.status = 'recording'; r.secs = 0; r.words = 0;
@@ -810,18 +837,86 @@ function toggleRec() {
     stopRec(r.script);
   }
 }
+function recordLive() {
+  if (ui.rec.status === 'recording') { window.syncyVoiceDebug(ui.voiceDebugId, 'stop_clicked'); ui.rec.recorder.stop(); clearInterval(ui.rec.timer); return; }
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) { alert('Voice recording is not available in this browser. Use a typed note.'); return; }
+  ui.voiceDebugId = crypto.randomUUID();
+  ui.audioBlob = null;
+  window.syncyVoiceDebug(ui.voiceDebugId, 'microphone_permission_requested');
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+    const mimeType = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(type => MediaRecorder.isTypeSupported(type));
+    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+    ui.rec = { status: 'recording', secs: 0, recorder };
+    recorder.ondataavailable = event => { if (event.data.size) { ui.audioBlob = event.data; window.syncyVoiceDebug(ui.voiceDebugId, 'audio_data_available', { bytes: event.data.size, mime_type: event.data.type || recorder.mimeType }); } else window.syncyVoiceDebug(ui.voiceDebugId, 'empty_audio_chunk'); };
+    recorder.onerror = event => window.syncyVoiceDebug(ui.voiceDebugId, 'recorder_error', { error: event.error?.name || 'unknown' });
+    recorder.onstop = () => {
+      stream.getTracks().forEach(track => track.stop()); clearInterval(ui.rec.timer);
+      const blob = ui.audioBlob, debugId = ui.voiceDebugId;
+      ui.rec.status = 'transcribing';
+      window.syncyVoiceDebug(debugId, 'recording_stopped', { seconds: ui.rec.secs, audio_bytes: blob?.size || 0, mime_type: blob?.type || recorder.mimeType });
+      render();
+      transcribeLiveRecording(blob, debugId);
+    };
+    window.syncyVoiceDebug(ui.voiceDebugId, 'recorder_started', { mime_type: recorder.mimeType || 'browser-default' });
+    recorder.start(); render();
+    ui.rec.timer = setInterval(() => {
+      ui.rec.secs++;
+      const timer = document.getElementById('timer'); if (timer) timer.textContent = `0:${String(ui.rec.secs).padStart(2, '0')}`;
+      if (ui.rec.secs >= 60) recorder.stop();
+    }, 1000);
+  }).catch(error => { window.syncyVoiceDebug(ui.voiceDebugId, 'microphone_failed', { error: error.name || 'unknown', message: error.message }); ui.error = `Microphone unavailable: ${error.message}`; alert(ui.error); });
+}
+async function transcribeLiveRecording(blob, debugId) {
+  try {
+    if (!blob?.size) throw new Error('No audio data was captured. Record again and speak near the microphone.');
+    if (blob.size > 20 * 1024 * 1024) throw new Error('Recording is too large. Record a shorter memo.');
+    window.syncyVoiceDebug(debugId, 'transcription_request_started', { audio_bytes: blob.size, mime_type: blob.type });
+    const transcript = (await db.transcribeAudio(blob, debugId)).trim();
+    if (!transcript) throw new Error('Whisper returned an empty transcript. Record again and speak near the microphone.');
+    ui.noteText = transcript;
+    ui.audioBlob = null;
+    ui.rec.status = 'done';
+    ui.error = null;
+    window.syncyVoiceDebug(debugId, 'transcription_succeeded', { transcript_chars: transcript.length });
+    render();
+  } catch (error) {
+    ui.audioBlob = null;
+    ui.rec.status = 'error';
+    ui.error = error.message || String(error);
+    window.syncyVoiceDebug(debugId, 'transcription_failed', { message: ui.error });
+    render();
+  }
+}
 function stopRec(script) { clearTimers(); ui.rec.status = 'done'; ui.noteText = script; render(); }
-function rerecord() { ui.rec = { status: 'idle', secs: 0, words: 0 }; ui.noteText = ''; render(); }
+function rerecord() { clearTimers(); clearInterval(ui.rec.timer); ui.audioBlob = null; ui.error = null; ui.rec = { status: 'idle', secs: 0, words: 0 }; ui.noteText = ''; render(); }
 function processNote() {
   const id = ui.contactId;
   const voice = ui.noteMode === 'voice';
+  if (!ui.voiceDebugId) ui.voiceDebugId = crypto.randomUUID();
+  window.syncyVoiceDebug(ui.voiceDebugId, 'process_clicked', { note_kind: voice ? 'voice' : 'text', audio_bytes: ui.audioBlob?.size || 0 });
   db.update('contacts', id, {
     note_kind: voice ? 'voice' : 'text',
     note_text: ui.noteText.trim(),
-    audio_path: voice ? `demo-user/${id}.webm` : null,
+    audio_path: null,
     status: 'processing',
   });
+  ui.error = null;
   go('processing');
+}
+async function runLiveProcess() {
+  if (ui.processing) return;
+  ui.processing = true;
+  try {
+    const c = db.get('contacts', ui.contactId);
+    window.syncyVoiceDebug(ui.voiceDebugId, 'edge_function_call_started');
+    const updated = await db.process(c.id, ui.voiceDebugId);
+    window.syncyVoiceDebug(ui.voiceDebugId, 'edge_function_call_succeeded', { status: updated?.status || 'unknown', transcript_chars: updated?.note_text?.length || 0 });
+    ui.draft = updated; ui.from = 'note'; ui.processing = false; go('review');
+  } catch (error) {
+    window.syncyVoiceDebug(ui.voiceDebugId, 'client_pipeline_failed', { message: error.message || String(error) });
+    ui.processing = false; ui.error = error.message || String(error);
+    db.update('contacts', ui.contactId, { status: 'error' }); render();
+  }
 }
 
 // ---------- AI stand-in ----------
@@ -888,16 +983,19 @@ function assignProject(id) {
   ui.draft.match_reason = p ? `Assigned by you to “${p.name}”.` : 'Not linked to a project.';
   render();
 }
-function saveContact(btn) {
+async function saveContact(btn) {
   btn.disabled = true; btn.textContent = 'Saving…';
   const d = ui.draft;
   const fields = ['name', 'role', 'company', 'summary', 'discussed', 'needs', 'project_id', 'project_set_by', 'match_reason', 'match_confidence', 'next_step', 'next_step_date', 'follow_up_draft'];
   const patch = Object.fromEntries(fields.map(f => [f, d[f] === '' ? null : d[f]]));
-  later(() => {
+  const save = async () => {
     db.update('contacts', d.id, { ...patch, status: 'saved' });
+    if (db.live) await db.flush('contacts', d.id);
     ui.contactId = d.id; ui.draft = null;
     if (ui.from === 'detail') { go('detail'); } else { go('saved'); }
-  }, 400);
+  };
+  if (db.live) save().catch(error => { btn.disabled = false; btn.textContent = ui.from === 'detail' ? 'Save changes' : 'Save contact'; alert(`Could not save this contact: ${error.message}`); });
+  else later(save, 400);
 }
 function openContact(id) {
   const c = db.get('contacts', id);
@@ -907,6 +1005,16 @@ function openContact(id) {
   go('detail');
 }
 function editContact() { ui.draft = db.get('contacts', ui.contactId); ui.from = 'detail'; go('review'); }
+async function deleteCurrentContact() {
+  const contact = db.get('contacts', ui.contactId);
+  if (!contact || !confirm(`Delete ${contact.name || 'this contact'} and its note and recording? This cannot be undone.`)) return;
+  try {
+    const result = await db.deleteContact(contact.id);
+    ui.contactId = null; ui.draft = null;
+    go(ui.tab);
+    if (!result.audioRemoved) alert('The contact was deleted, but its audio file could not be removed from Storage.');
+  } catch (error) { alert(`Could not delete contact: ${error.message || error}`); }
+}
 
 function addProject() {
   const name = document.getElementById('pName').value.trim();
@@ -946,10 +1054,18 @@ function jumpTo(screen) {
 }
 
 window.addEventListener('db-change', () => { if (!['note', 'processing', 'review'].includes(ui.screen)) render(); });
-
+window.addEventListener('db-error', e => alert(`Could not sync with Supabase: ${e.detail}`));
 ui = freshUi();
-render();
-if (location.hash) jumpTo(location.hash.slice(1));
+db.init().then(() => {
+  if (db.live) {
+    document.getElementById('modeBanner').textContent = 'Live · Supabase connected · AI processed securely';
+    document.getElementById('sideIntro').textContent = 'Phase 1 is connected to Supabase:';
+    document.getElementById('sideNote').textContent = 'Contacts, projects, notes, and recordings are stored in your Supabase demo account. AI calls run server-side.';
+    document.getElementById('resetButton').hidden = true;
+  }
+  ui = freshUi(); render();
+  if (location.hash && !db.live) jumpTo(location.hash.slice(1));
+}).catch(error => { alert(`Could not connect to Supabase: ${error.message}`); ui = freshUi(); render(); });
 </script>
 </body>
 </html>

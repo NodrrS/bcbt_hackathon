@@ -1,10 +1,6 @@
-// Syncy prototype data layer: a frontend mirror of the Supabase schema
-// (supabase/migrations/0001_phase1_schema.sql). Same tables, same snake_case columns.
-// Rows live in localStorage so the phone app and the dashboard share them.
-// Real build: replace db.list / insert / update with supabase-js calls (docs/DATA_MODEL.md §3).
-// Everything here is demo data: invented people, fictional companies, fake profile URLs.
+// Shared data adapter: live Supabase when config.js is present, otherwise the local prototype.
 (function () {
-  const TODAY = '2026-10-23'; // demo "today": day 1 of the hackathon
+  const TODAY = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const KEY = 'syncy-db-v1';
 
   const t = (date, time = '12:00') => `${date}T${time}:00+02:00`;
@@ -45,7 +41,7 @@
 
   const CONTACTS = [
     seed('ct-aylin', 'ev-bcbt', t('2026-10-23', '11:05'), {
-      source: 'qr_linkedin', profile_url: 'linkedin.com/in/aylin-demir-demo', profile_slug: 'aylin-demir-demo',
+      source: 'qr_linkedin', profile_url: 'https://linkedin.com/in/aylin-demir-demo', profile_slug: 'aylin-demir-demo',
       name: 'Aylin Demir', role: 'Organiser', company: 'Berlin Frontend Meetup', project_id: 'pr-speaking',
       note_text: 'Aylin runs the Berlin Frontend Meetup. They still have open speaker slots in December, she liked the idea of a talk about building dashboards fast. Send her a title and two sentences by Friday.',
       summary: 'Has open speaker slots in December; liked a talk idea on building dashboards fast.',
@@ -55,9 +51,9 @@
       next_step: 'Send talk title + abstract', next_step_date: '2026-10-30',
       follow_up_draft: 'Hi Aylin, thanks for the chat! Talk idea for December: "Shipping a data dashboard in a weekend". Happy to adjust to your audience.' }),
     contactRow({ id: 'ct-priya', event_id: 'ev-bcbt', scanned_at: t('2026-10-23', '11:40'), created_at: t('2026-10-23', '11:40'), updated_at: t('2026-10-23', '11:40'),
-      source: 'qr_linkedin', profile_url: 'linkedin.com/in/priya-raman-7b2a1', profile_slug: 'priya-raman-7b2a1', name: 'Priya Raman', status: 'captured' }),
+      source: 'qr_linkedin', profile_url: 'https://linkedin.com/in/priya-raman-7b2a1', profile_slug: 'priya-raman-7b2a1', name: 'Priya Raman', status: 'captured' }),
     seed('ct-marco', 'ev-bfm', t('2026-10-15', '19:20'), {
-      source: 'qr_linkedin', profile_url: 'linkedin.com/in/marco-rossi-demo', profile_slug: 'marco-rossi-demo',
+      source: 'qr_linkedin', profile_url: 'https://linkedin.com/in/marco-rossi-demo', profile_slug: 'marco-rossi-demo',
       name: 'Marco Rossi', role: 'CTO', company: 'Parkwise', project_id: 'pr-client',
       summary: 'Wants to move their parking admin dashboard from jQuery to React; asked for a rough estimate.',
       discussed: ['Admin dashboard is legacy jQuery', 'Team of 3, no frontend specialist', 'Wants an estimate before budgeting'],
@@ -66,7 +62,7 @@
       next_step: 'Send a rough estimate', next_step_date: '2026-10-20',
       follow_up_draft: 'Hi Marco, good to meet at the Frontend Meetup. Here is a rough estimate for moving the Parkwise admin dashboard to React, split into three phases.' }),
     seed('ct-sophie', 'ev-bfm', t('2026-10-15', '20:05'), {
-      source: 'qr_linkedin', profile_url: 'linkedin.com/in/sophie-laurent-demo', profile_slug: 'sophie-laurent-demo',
+      source: 'qr_linkedin', profile_url: 'https://linkedin.com/in/sophie-laurent-demo', profile_slug: 'sophie-laurent-demo',
       name: 'Sophie Laurent', role: 'Product Manager', company: 'Kiezkauf', project_id: 'pr-client', match_confidence: 'medium',
       summary: 'Wants better charts in the merchant analytics page; budget decision after their funding round.',
       discussed: ['Merchant analytics page needs charts', 'Funding round closes in November', 'Prefers a freelancer over an agency'],
@@ -75,7 +71,7 @@
       next_step: 'Check in after their funding round', next_step_date: '2026-11-10', stage: 'followed_up',
       follow_up_draft: 'Hi Sophie, hope the round is going well! Happy to sketch a few chart ideas for the merchant analytics page whenever it suits you.' }),
     seed('ct-tobias', 'ev-bfm', t('2026-10-15', '20:30'), {
-      source: 'qr_xing', profile_url: 'xing.com/profile/Tobias_Krueger_demo', profile_slug: 'Tobias_Krueger_demo',
+      source: 'qr_xing', profile_url: 'https://xing.com/profile/Tobias_Krueger_demo', profile_slug: 'Tobias_Krueger_demo',
       name: 'Tobias Krüger', role: 'Freelance UX designer', company: 'Self-employed', project_id: 'pr-speaking', note_kind: 'text',
       summary: 'Suggested co-hosting a design-meets-code workshop at the meetup.',
       discussed: ['Runs UX workshops', 'Idea: joint design + React workshop', 'Could also refer clients'],
@@ -84,7 +80,7 @@
       next_step: 'Agree on the workshop topic', next_step_date: '2026-10-22', stage: 'followed_up',
       follow_up_draft: 'Hi Tobias, still keen on the workshop idea. How about "From Figma to a working dashboard in 90 minutes"?' }),
     seed('ct-mina', 'ev-fnb', t('2026-10-08', '19:10'), {
-      source: 'qr_linkedin', profile_url: 'linkedin.com/in/mina-park-demo', profile_slug: 'mina-park-demo',
+      source: 'qr_linkedin', profile_url: 'https://linkedin.com/in/mina-park-demo', profile_slug: 'mina-park-demo',
       name: 'Mina Park', role: 'HR Director', company: 'Brightwork GmbH', project_id: 'pr-cofounder',
       summary: 'Onboarding 300 staff by hand in spreadsheets; open to being a pilot customer.',
       discussed: ['300 employees, onboarding in spreadsheets', 'New hires wait days for accounts', 'Open to a pilot'],
@@ -93,7 +89,7 @@
       next_step: '30-min problem interview', next_step_date: '2026-10-24', stage: 'meeting_set',
       follow_up_draft: 'Hi Mina, thanks again for offering to talk. Looking forward to our 30 minutes on Saturday about how onboarding works at Brightwork today.' }),
     seed('ct-david', 'ev-fnb', t('2026-10-08', '19:45'), {
-      source: 'qr_linkedin', profile_url: 'linkedin.com/in/david-okafor-demo', profile_slug: 'david-okafor-demo',
+      source: 'qr_linkedin', profile_url: 'https://linkedin.com/in/david-okafor-demo', profile_slug: 'david-okafor-demo',
       name: 'David Okafor', role: 'Angel investor', company: 'Independent', project_id: 'pr-cofounder', note_kind: 'text',
       summary: 'Invests in pre-seed HR-tech; wants to see traction (three pilots) before talking money.',
       discussed: ['Writes €25–50k pre-seed tickets', 'Likes HR-tech', 'Wants 3 pilots first'],
@@ -102,7 +98,7 @@
       next_step: 'Send an update once 3 pilots run', next_step_date: '2026-12-01', stage: 'followed_up',
       follow_up_draft: 'Hi David, quick update as promised: we have our first pilot conversations lined up. I will share numbers once three pilots are live.' }),
     seed('ct-clara', 'ev-fnb', t('2026-10-08', '20:15'), {
-      source: 'qr_linkedin', profile_url: 'linkedin.com/in/clara-schmidt-demo', profile_slug: 'clara-schmidt-demo',
+      source: 'qr_linkedin', profile_url: 'https://linkedin.com/in/clara-schmidt-demo', profile_slug: 'clara-schmidt-demo',
       name: 'Clara Schmidt', role: 'Engineering Manager', company: 'Fahrwerk Mobility', project_id: 'pr-client',
       summary: 'Signed a 3-month contract for a React fleet dashboard. Kick-off next week.',
       discussed: ['Fleet dashboard for 2,000 vehicles', '3-month contract', 'Team in Berlin and Lisbon'],
@@ -111,7 +107,7 @@
       next_step: 'Kick-off call', next_step_date: '2026-10-26', stage: 'won',
       follow_up_draft: 'Hi Clara, excited to start! I have sent the kick-off agenda for Monday.' }),
     seed('ct-felix', 'ev-fnb', t('2026-10-08', '21:00'), {
-      source: 'qr_xing', profile_url: 'xing.com/profile/Felix_Braun_demo', profile_slug: 'Felix_Braun_demo',
+      source: 'qr_xing', profile_url: 'https://xing.com/profile/Felix_Braun_demo', profile_slug: 'Felix_Braun_demo',
       name: 'Felix Braun', role: 'Podcast host', company: 'Berlin Builds podcast', project_id: 'pr-speaking', match_confidence: 'medium',
       summary: 'Invited you as a guest on his podcast about Berlin freelancers.',
       discussed: ['Weekly podcast, ~2,000 listeners', 'Episodes on freelancing', 'Records in his Neukölln studio'],
@@ -120,7 +116,7 @@
       next_step: 'Pick a recording date', next_step_date: null,
       follow_up_draft: 'Hi Felix, I would love to come on Berlin Builds. Which dates work for recording in November?' }),
     seed('ct-anna', 'ev-ktm', t('2026-09-30', '18:50'), {
-      source: 'qr_linkedin', profile_url: 'linkedin.com/in/anna-novak-demo', profile_slug: 'anna-novak-demo',
+      source: 'qr_linkedin', profile_url: 'https://linkedin.com/in/anna-novak-demo', profile_slug: 'anna-novak-demo',
       name: 'Anna Novak', role: 'Recruiter', company: 'Talentbridge', project_id: null, match_confidence: null, note_kind: 'text',
       summary: 'Recruits for full-time roles only; not a fit for freelance work right now.',
       discussed: ['Full-time roles only', 'Mostly backend positions', 'Might hire freelancers next year'],
@@ -129,7 +125,7 @@
       next_step: 'No follow-up needed', next_step_date: null, stage: 'not_relevant',
       follow_up_draft: 'Hi Anna, nice to meet you at the mixer. Let me know if freelance projects come up next year.' }),
     seed('ct-yusuf', 'ev-ktm', t('2026-09-30', '19:30'), {
-      source: 'qr_linkedin', profile_url: 'linkedin.com/in/yusuf-aydin-demo', profile_slug: 'yusuf-aydin-demo',
+      source: 'qr_linkedin', profile_url: 'https://linkedin.com/in/yusuf-aydin-demo', profile_slug: 'yusuf-aydin-demo',
       name: 'Yusuf Aydın', role: 'Freelance data engineer', company: 'Self-employed', project_id: 'pr-client',
       summary: 'Has more backend work than he can take; could pass dashboard frontends your way.',
       discussed: ['Builds data pipelines for SMEs', 'Clients keep asking for dashboards', 'Wants a frontend partner'],
@@ -138,7 +134,7 @@
       next_step: 'Agree how to share overflow work', next_step_date: '2026-11-05',
       follow_up_draft: 'Hi Yusuf, great idea to team up. Shall we have a call next week to agree how we hand over dashboard work?' }),
     seed('ct-elena', 'ev-ktm', t('2026-09-30', '20:10'), {
-      source: 'qr_xing', profile_url: 'xing.com/profile/Elena_Petrova_demo', profile_slug: 'Elena_Petrova_demo',
+      source: 'qr_xing', profile_url: 'https://xing.com/profile/Elena_Petrova_demo', profile_slug: 'Elena_Petrova_demo',
       name: 'Elena Petrova', role: 'COO', company: 'Lernwerk', project_id: 'pr-cofounder',
       summary: 'Onboarding new tutors is fully manual; wanted to see the HR-tech prototype.',
       discussed: ['Onboards ~40 tutors a month', 'Everything happens by email', 'Asked for the prototype link'],
@@ -147,7 +143,7 @@
       next_step: 'Send the prototype link', next_step_date: '2026-10-15',
       follow_up_draft: 'Hi Elena, the prototype is ready to try. Here is the link; I would love your feedback on the tutor onboarding flow.' }),
     seed('ct-ben', 'ev-ktm', t('2026-09-30', '20:40'), {
-      source: 'qr_linkedin', profile_url: 'linkedin.com/in/ben-fischer-demo', profile_slug: 'ben-fischer-demo',
+      source: 'qr_linkedin', profile_url: 'https://linkedin.com/in/ben-fischer-demo', profile_slug: 'ben-fischer-demo',
       name: 'Ben Fischer', role: 'Developer advocate', company: 'Datenhafen', project_id: 'pr-speaking',
       summary: 'Their frontend conference opens its call for papers soon; encouraged you to submit.',
       discussed: ['Conference in February', 'Call for papers closes mid-November', 'Looking for practical talks'],
@@ -181,31 +177,137 @@
   const newId = table => `${table.slice(0, 2)}-${Date.now().toString(36)}${(counter++).toString(36)}`;
   const now = () => new Date().toISOString();
 
+  let client = null;
+  let live = false;
+  let userId = null;
+  let channel = null;
+  let audioBlob = null;
+  const writes = new Map();
+  const tables = ['events', 'projects', 'contacts'];
+  const report = error => { console.error('Syncy backend:', error); window.dispatchEvent(new CustomEvent('db-error', { detail: error.message || String(error) })); };
+  const enqueue = (table, id, action) => {
+    const key = `${table}:${id}`;
+    const task = (writes.get(key) || Promise.resolve()).catch(() => {}).then(action).catch(error => { report(error); throw error; });
+    task.catch(() => {});
+    writes.set(key, task);
+    return task;
+  };
   window.db = {
     TODAY,
     contactRow,
+    get live() { return live; },
+    async init() {
+      if (!window.SYNCY_CONFIG?.supabaseUrl || !window.SYNCY_CONFIG?.supabaseAnonKey) {
+        data.contacts.forEach(c => { c.profile_url = window.parseProfile(c.profile_url).profile_url; });
+        save();
+        return;
+      }
+      client = window.supabase.createClient(window.SYNCY_CONFIG.supabaseUrl, window.SYNCY_CONFIG.supabaseAnonKey);
+      const { data: { session }, error: sessionError } = await client.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) {
+        const { data: signed, error } = await client.auth.signInWithPassword({
+          email: window.SYNCY_CONFIG.demoEmail, password: window.SYNCY_CONFIG.demoPassword,
+        });
+        if (error) throw error;
+        userId = signed.user.id;
+      } else userId = session.user.id;
+      live = true;
+      try { await this.reload(false); } catch (error) { live = false; throw error; }
+      if ('BroadcastChannel' in window) {
+        channel = new BroadcastChannel('syncy-live');
+        channel.onmessage = () => this.reload().catch(report);
+      }
+      client.auth.onAuthStateChange((_event, sessionNow) => { userId = sessionNow?.user?.id || null; });
+    },
+    async reload(notify = true) {
+      if (!live) return;
+      const rows = await Promise.all(tables.map(async table => {
+        const { data: rows, error } = await client.from(table).select('*');
+        if (error) throw error;
+        return rows;
+      }));
+      data = Object.fromEntries(tables.map((table, i) => [table, rows[i]]));
+      if (notify) window.dispatchEvent(new Event('db-change'));
+    },
+    async flush(table, id) { await writes.get(`${table}:${id}`); },
     list(table) { return clone(data[table]); },
     get(table, id) { const r = data[table].find(r => r.id === id); return r ? clone(r) : null; },
     insert(table, row) {
       const base = table === 'contacts' ? contactRow({}) : {};
-      const r = { ...base, ...row, id: newId(table), created_at: now(), updated_at: now() };
+      const r = { ...base, ...row, id: live ? crypto.randomUUID() : newId(table), ...(live ? { user_id: userId } : {}), created_at: now(), updated_at: now() };
       data[table].push(r);
-      save();
+      if (live) enqueue(table, r.id, async () => { const { error } = await client.from(table).insert(r); if (error) throw error; channel?.postMessage('changed'); }); else save();
       return clone(r);
     },
     update(table, id, patch) {
       const r = data[table].find(r => r.id === id);
       if (!r) return null;
       Object.assign(r, patch, { updated_at: now() });
-      save();
+      if (live) enqueue(table, id, async () => { const { error } = await client.from(table).update(patch).eq('id', id).eq('user_id', userId); if (error) throw error; channel?.postMessage('changed'); }); else save();
       return clone(r);
+    },
+    async deleteContact(id) {
+      const contact = this.get('contacts', id);
+      if (!contact) throw new Error('Contact not found.');
+      if (live) {
+        await this.flush('contacts', id);
+        const { data: deleted, error } = await client.from('contacts').delete().eq('id', id).eq('user_id', userId).select('id').maybeSingle();
+        if (error) throw error;
+        if (!deleted) throw new Error('Contact not found or you do not have permission to delete it.');
+      }
+      data.contacts = data.contacts.filter(row => row.id !== id);
+      if (!live) { save(); return { audioRemoved: true }; }
+      channel?.postMessage('changed');
+      if (contact.audio_path) {
+        const { error } = await client.storage.from('voice-notes').remove([contact.audio_path]);
+        if (error) return { audioRemoved: false };
+      }
+      return { audioRemoved: true };
     },
     // Mirrors the unique index contacts_once_per_event.
     findContact(eventId, profileUrl) {
-      const r = data.contacts.find(c => c.event_id === eventId && c.profile_url === profileUrl);
+      const canonical = window.parseProfile(profileUrl).profile_url;
+      const r = data.contacts.find(c => c.event_id === eventId && window.parseProfile(c.profile_url).profile_url === canonical);
       return r ? clone(r) : null;
     },
-    reset() { data = clone(SEED); save(); },
+    async transcribeAudio(blob, debugId) {
+      const form = new FormData();
+      form.set('action', 'transcribe');
+      form.set('debug_id', debugId);
+      form.set('audio', blob, blob.type.includes('mp4') ? 'voice.mp4' : 'voice.webm');
+      const { data: { session }, error: sessionError } = await client.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) throw new Error('Your session expired. Sign in again.');
+      const response = await fetch(`${window.SYNCY_CONFIG.supabaseUrl.replace(/\/$/, '')}/functions/v1/process-note`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}`, apikey: window.SYNCY_CONFIG.supabaseAnonKey },
+        body: form,
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = result.error || `Transcription request failed (${response.status}).`;
+        window.syncyVoiceDebug?.(debugId, 'transcription_function_failed', { message });
+        throw new Error(message);
+      }
+      return result?.transcript || '';
+    },
+    async process(contactId, debugId) {
+      window.syncyVoiceDebug?.(debugId, 'pending_database_writes_wait');
+      await Promise.all([...writes].filter(([key]) => key.startsWith('projects:') || key === `contacts:${contactId}`).map(([, task]) => task));
+      window.syncyVoiceDebug?.(debugId, 'pending_database_writes_complete');
+      const { error } = await client.functions.invoke('process-note', { body: { contact_id: contactId, debug_id: debugId } });
+      if (error) {
+        let message = error.message;
+        try { message = (await error.context.json()).error || message; } catch { /* keep the SDK message */ }
+        window.syncyVoiceDebug?.(debugId, 'edge_function_call_failed', { message });
+        throw new Error(message);
+      }
+      await this.reload();
+      channel?.postMessage('changed');
+      return this.get('contacts', contactId);
+    },
+    reset() { if (live) { this.reload().catch(report); return; } data = clone(SEED); save(); },
   };
 
   // Keep open tabs (phone app + dashboard) in step.
@@ -231,10 +333,13 @@
 
   // What the scan step stores: profile URL, slug, and a display name from the slug.
   window.parseProfile = function (raw) {
-    const url = String(raw).trim().replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/+$/, '');
-    let source = 'qr_other', slug = url.split(/[/?#]/).filter(Boolean).pop() || '';
-    const li = url.match(/linkedin\.com\/in\/([^/?#]+)/i);
-    const xi = url.match(/xing\.com\/profile\/([^/?#]+)/i);
+    let parsed;
+    try { parsed = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`); } catch { return { profile_url: '', profile_slug: '', source: 'qr_other', name: null }; }
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+    const url = `https://${host}${parsed.pathname.replace(/\/+$/, '')}`;
+    let source = 'qr_other', slug = parsed.pathname.split('/').filter(Boolean).pop() || '';
+    const li = host === 'linkedin.com' && parsed.pathname.match(/^\/in\/([^/]+)/i);
+    const xi = host === 'xing.com' && parsed.pathname.match(/^\/profile\/([^/]+)/i);
     if (li) { source = 'qr_linkedin'; slug = li[1]; }
     else if (xi) { source = 'qr_xing'; slug = xi[1]; }
     let decoded = slug;

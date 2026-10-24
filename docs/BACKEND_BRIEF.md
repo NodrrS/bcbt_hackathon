@@ -19,10 +19,11 @@ sequenceDiagram
   U->>FE: scan QR
   FE->>SB: contacts.insert(profile_url, slug, name, event_id) → status 'captured'
   U->>FE: type note — or record voice memo
-  FE->>SB: upload audio → voice-notes/<user_id>/<contact_id>.<ext>
-  FE->>FN: invoke { contact_id }
-  FN->>SB: status 'processing' · read audio + projects
-  FN->>AI: STT → LLM 1 (summary) → LLM 2 (match + draft)
+  FE->>FN: send in-memory audio on stop
+  FN->>AI: Whisper transcription → return transcript
+  FE->>FN: invoke { contact_id } after Process
+  FN->>SB: status 'processing' · read contact + projects
+  FN->>AI: LLM 1 (summary) → LLM 2 (match + draft)
   FN->>SB: write AI fields → status 'review'
   FE-->>U: review card (polls the row until status != 'processing')
   U->>FE: edit fields, assign project, Save
@@ -36,7 +37,7 @@ sequenceDiagram
 | Pick event | list + create form | Postgres `events` | name, location, url, starts_on |
 | Scan | html5-qrcode decode → regex slug → prettify name | Postgres `contacts` insert | source, profile_url, profile_slug, name, event_id, `status='captured'` |
 | Quick project pick (optional) | one-tap chips | Postgres update | project_id, `project_set_by='user'` |
-| Note | textarea **or** MediaRecorder | Storage upload (voice only) | note_kind, note_text, audio_path |
+| Note | textarea **or** MediaRecorder | Whisper on stop; audio not stored | note_kind, note_text |
 | Processing | invoke fn, then poll row every 2 s | **Edge Fn `process-note`** → AI APIs | summary, discussed, needs, project_id, match_reason, match_confidence, next_step, next_step_date, follow_up_draft, `status='review'` |
 | Review & save | editable card | Postgres update | edited fields, `status='saved'`; project change → `project_set_by='user'` |
 | Dashboard | table + drawer | Postgres select/update | stage, user_notes, any field |
@@ -45,12 +46,13 @@ sequenceDiagram
 
 | Tool / service | Used for | Where it runs | Key / setup | Owner | Status |
 |---|---|---|---|---|---|
-| **Supabase** (Postgres, Auth, Storage, Edge Functions) | all data, RLS, audio files, AI pipeline | cloud | create project (EU region); anon key → client, service-role stays server-side (auto-injected in Edge Fns) | Utkarsh | ❌ create today |
+| **Supabase** (Postgres, Auth, Edge Functions) | contact data, RLS, AI pipeline; Storage remains for legacy audio cleanup | cloud | create project (EU region); anon key → client, service-role stays server-side (auto-injected in Edge Fns) | Utkarsh | ❌ create today |
 | **supabase-js** | the 4 data calls from both pages | browser | CDN or npm; replaces `data.js` internals | Nodir + Utkarsh | ❌ |
 | **Supabase CLI** | apply migration, deploy Edge Fn, set secrets | dev laptops | `supabase login`, `supabase link` | Utkarsh | ❌ |
-| **AI provider** (per D2, mentor key) | STT (voice→text) · LLM call 1 (summary) · LLM call 2 (match + draft) · vision only if D4 stays in | **Edge Function only** — never the browser | `supabase secrets set AI_API_KEY=...` | Utkarsh | ❌ |
+| **OpenRouter** | LLM call 1 (summary) · LLM call 2 (match + draft) | **Edge Function only** — never the browser | `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` | Utkarsh | Needs configuration |
+| **OpenRouter Whisper** (`openai/whisper-1`) | Voice → text, German/English auto-detect | **Edge Function only** — never the browser | Reuses `OPENROUTER_API_KEY`; optional `WHISPER_MODEL` | Utkarsh | Same key as the LLM calls |
 | **html5-qrcode** | camera QR decode (D3) | phone page | CDN script | Nodir | ❌ |
-| **MediaRecorder API** | voice memo | phone page | built-in; ⚠️ Safari records `audio/mp4`, Chrome `audio/webm` — name the file by actual mimeType | Nodir | — |
+| **MediaRecorder API** | voice memo | phone page | built-in; send audio in memory to the authenticated Edge Function | Nodir | — |
 | **HTTPS static hosting** (D9: Vercel/Netlify) | serve the two pages; camera+mic require HTTPS | cloud | one-command deploy | Utkarsh | ❌ today |
 | GitHub | repo + submission (M6) | — | all 5 have access | Nodir | ✅ |
 | ~~Notion API, OAuth, pg_cron, webhooks/queues~~ | **Phase 2 — do not set up this weekend** ([ARCHITECTURE.md §3](ARCHITECTURE.md)) | — | — | — | parked |
@@ -61,7 +63,7 @@ sequenceDiagram
 |---|---|---|
 | Client (gitignored `config.js` or build env) | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | anon key is safe client-side **because RLS is on** |
 | Client | `DEMO_EMAIL`, `DEMO_PASSWORD` | single demo user (D6); sign in on page load so `auth.uid()` works |
-| Edge Fn secrets | `AI_API_KEY` | the mentor's key; never in the repo (AC-2.2) |
+| Edge Fn secrets | `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` | one OpenRouter key covers LLM and Whisper STT; keys never in the repo |
 | Edge Fn (auto) | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | injected by Supabase |
 
 ## 3. Build & wiring order (do it in this sequence)
@@ -70,9 +72,9 @@ sequenceDiagram
 - [ ] **2. Apply schema + demo user.** `supabase db push` (migration 0001). Create the demo auth user. Smoke-test RLS: a second user must see zero rows.
 - [ ] **3. Seed** (with Bhuvanesh): 1 event, 4–5 projects **with 1–2-sentence descriptions** (the AI matches on `name + description`), fake personas (P-6).
 - [ ] **4. Swap `data.js` → supabase-js** (with Nodir): keep the exact four function signatures (`db.list/insert/update`, projects list) from [DATA_MODEL.md §3](DATA_MODEL.md) so no screen code changes. Sign in the demo user on load.
-- [ ] **5. Storage upload helper:** `voice-notes/<user_id>/<contact_id>.webm|.mp4` by actual mimeType; set `note_kind`, `audio_path`.
+- [x] **5. Voice transcription on stop:** send in-memory audio to the authenticated Edge Function and return transcript without storing audio.
 - [ ] **6. Edge Fn `process-note` skeleton first:** statuses + error path before any AI — set `processing`, fake fields, set `review`; on throw set `status='error'` (keeps audio + fields, P-5). Frontend polls the row every 2 s.
-- [ ] **7. Wire the AI** inside the fn, in order: STT → `note_text`; LLM 1 → summary JSON; `projects` select (`archived=false`); LLM 2 → match + confidence + follow-up draft. JSON schemas + rules: [PRD.md §9](../PRD.md). If `project_set_by='user'`, don't overwrite `project_id`. Invalid JSON → one retry → else `error`. Prompts live in the repo (`/prompts`) — AC-6.5.
+- [x] **7. Wire the AI** inside the function: Whisper STT → `note_text`; OpenRouter LLM 1 → summary JSON; active project read; OpenRouter LLM 2 → match + confidence + follow-up draft. If `project_set_by='user'`, keep the manual assignment. Invalid JSON retries once. Prompt text lives beside the Edge Function.
 - [ ] **8. Idempotency:** re-invoking on the same contact must be safe (retry button).
 - [ ] **9. Deploy** both pages to the HTTPS host; test camera + mic **on the demo phone** (D10), not just desktop.
 - [ ] **10. Measure:** log seconds + tokens per step; hand real €/contact to Sadaf (AC-7.4). Then: 3 clean runs in a row (AC-4.1).

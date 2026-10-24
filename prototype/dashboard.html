@@ -5,9 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Syncy contacts</title>
 <!--
-  Contacts dashboard (desktop / web view). Reads and writes the same rows as the phone app through data.js,
-  a localStorage mirror of the Supabase schema (supabase/migrations/0001_phase1_schema.sql, docs/DATA_MODEL.md §4).
-  Everything is demo data: invented people, fictional companies, fake profile URLs.
+  Contacts dashboard. Reads and writes the same rows as the phone app through data.js,
+  which uses Supabase when config.js is present and localStorage for the prototype.
 -->
 <style>
 :root {
@@ -250,6 +249,8 @@ select.f.set { border-color: var(--accent); background: var(--accent-soft); }
 <div class="scrim" id="scrim" onclick="closeDrawer()"></div>
 <aside class="drawer" id="drawer" aria-label="Contact details"></aside>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+<script src="config.js"></script>
 <script src="data.js"></script>
 <script>
 const STAGES = [
@@ -463,6 +464,7 @@ function renderDrawer() {
       <div class="linkrow">${srcBadge(c.source)}<code>${esc(c.profile_url)}</code></div>
       <div class="label">Row</div>
       <div class="meta-grid"><span>status</span><code>${esc(c.status)}</code><span>profile_slug</span><code>${esc(c.profile_slug)}</code><span>scanned_at</span><code>${esc(c.scanned_at)}</code><span>updated_at</span><code>${esc(c.updated_at)}</code></div>
+      <button class="btn" style="margin-top:12px;color:#b42318" onclick="deleteContact('${c.id}', this)">Delete contact</button>
       <div class="saved-note" id="savedNote"></div>
     </div>`;
 }
@@ -502,16 +504,28 @@ function setSort(key) { state.sort = key; renderAll(); }
 function openDrawer(id) { state.openId = id; renderRows(); renderDrawer(); }
 function closeDrawer() { state.openId = null; renderRows(); renderDrawer(); }
 
+async function deleteContact(id, button) {
+  const contact = db.get('contacts', id);
+  if (!contact || !confirm(`Delete ${contact.name || 'this contact'} and its note and recording? This cannot be undone.`)) return;
+  button.disabled = true; button.textContent = 'Deleting…';
+  try {
+    const result = await db.deleteContact(id);
+    state.openId = null;
+    renderAll();
+    if (!result.audioRemoved) alert('The contact was deleted, but its audio file could not be removed from Storage.');
+  } catch (error) {
+    button.disabled = false; button.textContent = 'Delete contact';
+    alert(`Could not delete contact: ${error.message || error}`);
+  }
+}
+
 // Same write as the phone app: one PATCH on the contacts row.
 function update(field, value) {
   const patch = { [field]: value === '' ? null : value };
-  // Filling in a scanned-only contact by hand makes it a saved contact.
-  const c = db.get('contacts', state.openId);
-  if (needsNote(c) && ['summary', 'needs', 'next_step', 'project_id'].includes(field) && value) patch.status = 'saved';
   db.update('contacts', state.openId, patch);
   renderStats(); renderFilters(); renderRows();
   // Text edits keep the drawer as is, so tabbing to the next field keeps focus.
-  if (field === 'stage' || field === 'project_id' || patch.status) renderDrawer();
+  if (field === 'stage' || field === 'project_id') renderDrawer();
   const note = document.getElementById('savedNote');
   if (note) note.textContent = 'Saved ✓';
 }
@@ -528,7 +542,7 @@ function copyDraft(btn) {
   btn.textContent = 'Copied ✓';
   setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
 }
-function resetDemo() { db.reset(); state.openId = null; clearFilters(); }
+function resetDemo() { if (db.live) { alert('Demo reset is available only in the local prototype.'); return; } db.reset(); state.openId = null; clearFilters(); }
 
 document.getElementById('q').addEventListener('input', e => { state.q = e.target.value; state.statFilter = null; renderRows(); document.getElementById('clearBtn').style.visibility = isFiltered() ? 'visible' : 'hidden'; });
 [['fProject', 'project'], ['fEvent', 'event'], ['fDue', 'due'], ['fStatus', 'status'], ['fSource', 'source'], ['sortSel', 'sort']].forEach(([id, key]) =>
@@ -536,8 +550,8 @@ document.getElementById('q').addEventListener('input', e => { state.q = e.target
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && state.openId) closeDrawer(); });
 // The phone app saved something in another tab.
 window.addEventListener('db-change', () => { if (state.openId && !db.get('contacts', state.openId)) state.openId = null; renderAll(); });
-
-renderAll();
+window.addEventListener('db-error', e => alert(`Could not sync with Supabase: ${e.detail}`));
+db.init().then(renderAll).catch(error => alert(`Could not connect to Supabase: ${error.message}`));
 </script>
 </body>
 </html>
