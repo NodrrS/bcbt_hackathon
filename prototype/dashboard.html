@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f3efe9">
 <title>Syncy contacts</title>
 <!--
   Contacts dashboard. Reads and writes the same rows as the phone app through data.js,
@@ -28,6 +29,8 @@
   --purple-soft: #efe8f9;
   --grey-soft: #f1ebe3;
   --danger: #c2372b;
+  --ease-out: cubic-bezier(.23, 1, .32, 1);
+  --ease-drawer: cubic-bezier(.32, .72, 0, 1);
   --linkedin: #0a66c2;
   --xing: #026466;
   --shadow: 0 1px 2px rgba(40, 28, 16, .06), 0 6px 18px rgba(40, 28, 16, .07);
@@ -37,16 +40,18 @@
 html, body { margin: 0; }
 body { background: var(--bg); color: var(--ink); font: 14.5px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif; }
 button, input, select, textarea { font: inherit; color: inherit; }
-button { cursor: pointer; border: 0; background: none; }
+html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+button { cursor: pointer; border: 0; background: none; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+a { touch-action: manipulation; }
 
-.app { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+.app { display: grid; grid-template-columns: 232px 1fr; min-height: 100dvh; }
 
 /* ---------- sidebar ---------- */
-.side { background: #1f1b17; color: #efe6db; padding: 22px 16px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; }
+.side { background: #1f1b17; color: #efe6db; padding: 22px 16px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100dvh; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; letter-spacing: -.02em; margin: 0 8px 22px; color: #fff; }
 .logo { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffd27a, var(--accent-2) 45%, var(--accent) 100%); box-shadow: 0 0 14px rgba(243, 163, 63, .6); }
 .nav { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; color: #cbbfb1; text-decoration: none; text-align: left; }
-.nav:hover { background: rgba(255, 255, 255, .06); color: #fff; }
+@media (hover: hover) and (pointer: fine) { .nav:hover { background: rgba(255, 255, 255, .06); color: #fff; } }
 .nav.on { background: rgba(255, 255, 255, .1); color: #fff; font-weight: 600; }
 .nav .count { margin-left: auto; font-size: 12px; color: #a99c8d; }
 .side .spacer { flex: 1; }
@@ -76,7 +81,7 @@ button { cursor: pointer; border: 0; background: none; }
 
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.6fr); gap: 12px; margin: 20px 0 18px; }
 .stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; text-align: left; box-shadow: var(--shadow); transition: transform .12s, border-color .12s; }
-button.stat:hover { transform: translateY(-1px); border-color: var(--accent-2); }
+@media (hover: hover) and (pointer: fine) { button.stat:hover { transform: translateY(-1px); border-color: var(--accent-2); } }
 .stat.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft), var(--shadow); }
 .stat .num { font-size: 28px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
 .stat .lbl { color: var(--muted); font-size: 13px; }
@@ -109,7 +114,7 @@ select.f.set { border-color: var(--accent); background: var(--accent-soft); }
 .thead button.on { color: var(--ink); }
 .row { border-bottom: 1px solid var(--line); cursor: pointer; transition: background .1s; }
 .row:last-child { border-bottom: 0; }
-.row:hover { background: #fffaf3; }
+@media (hover: hover) and (pointer: fine) { .row:hover { background: #fffaf3; } }
 .row:focus-visible { outline: 2px solid var(--accent-2); outline-offset: -2px; }
 .row.open { background: var(--accent-soft); }
 .person { display: flex; gap: 10px; align-items: center; min-width: 0; }
@@ -131,7 +136,7 @@ select.f.set { border-color: var(--accent); background: var(--accent-soft); }
 .met { font-size: 12.5px; color: var(--muted); }
 .met b { color: var(--ink); font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .evlink { color: var(--accent-ink); font-size: 12.5px; text-decoration: none; }
-.evlink:hover { text-decoration: underline; }
+@media (hover: hover) and (pointer: fine) { .evlink:hover { text-decoration: underline; } }
 .empty { padding: 40px 20px; text-align: center; color: var(--muted); }
 
 .st-to_follow_up { background: var(--accent-soft); color: var(--accent-ink); }
@@ -141,15 +146,18 @@ select.f.set { border-color: var(--accent); background: var(--accent-soft); }
 .st-not_relevant { background: var(--grey-soft); color: var(--muted); }
 
 /* ---------- drawer ---------- */
-.scrim { position: fixed; inset: 0; background: rgba(31, 27, 23, .28); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 20; }
+.scrim { position: fixed; inset: 0; background: rgba(31, 27, 23, .28); opacity: 0; pointer-events: none; transition: opacity .3s ease; z-index: 20; }
 .scrim.show { opacity: 1; pointer-events: auto; }
-.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(480px, 100vw); background: var(--panel); box-shadow: -10px 0 40px rgba(0, 0, 0, .15); transform: translateX(100%); transition: transform .22s ease; z-index: 21; display: flex; flex-direction: column; }
+.scrim:not(.show) { transition-duration: .2s; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(480px, 100vw); background: var(--panel); box-shadow: -10px 0 40px rgba(0, 0, 0, .15); transform: translateX(100%); transition: transform .4s var(--ease-drawer); z-index: 21; display: flex; flex-direction: column; }
 .drawer.show { transform: none; }
+.drawer:not(.show) { transition-duration: .28s; }
 .dhead { padding: 18px 20px 14px; border-bottom: 1px solid var(--line); display: flex; gap: 12px; align-items: flex-start; }
 .dhead .avatar { width: 52px; height: 52px; font-size: 18px; }
 .dhead .x { margin-left: auto; width: 34px; height: 34px; border-radius: 50%; background: var(--grey-soft); flex: none; font-size: 16px; }
 .dhead input.title { font-size: 20px; font-weight: 700; letter-spacing: -.01em; border: 1px solid transparent; border-radius: 8px; padding: 2px 6px; margin-left: -6px; width: 100%; background: transparent; }
-.dhead input.title:hover, .dhead input.title:focus { border-color: var(--line); background: #fff; outline: 0; }
+.dhead input.title:focus { border-color: var(--line); background: #fff; outline: 0; }
+@media (hover: hover) and (pointer: fine) { .dhead input.title:hover { border-color: var(--line); background: #fff; outline: 0; } }
 .dbody { padding: 6px 20px 30px; overflow-y: auto; flex: 1; }
 .label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 0 6px; display: flex; justify-content: space-between; align-items: center; }
 .label .ai { text-transform: none; letter-spacing: 0; color: var(--accent); font-weight: 600; }
@@ -229,6 +237,33 @@ select.f.set { border-color: var(--accent); background: var(--accent-soft); }
   .two, .half { grid-template-columns: 1fr; }
   .mobile-nav a { font-size: 10.5px; }
 }
+/* ---------- press feedback ---------- */
+.btn, .nav, .chipbtn, .seg button, .dhead .x { transition: transform 140ms var(--ease-out); }
+.btn:active:not(:disabled), .nav:active, .chipbtn:active, .seg button:active { transform: scale(.97); }
+.dhead .x:active { transform: scale(.94); }
+button.stat:active { transform: scale(.98); }
+
+/* ---------- toasts (Sonner-style: transitions, not keyframes) ---------- */
+.toasts { position: fixed; right: 20px; bottom: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; z-index: 80; pointer-events: none; }
+.toast { pointer-events: auto; display: flex; align-items: center; gap: 8px; max-width: 380px; background: #241f1a; color: #fff; font-size: 13.5px; font-weight: 500; line-height: 1.4; padding: 11px 16px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, .22); transition: transform .35s var(--ease-out), opacity .35s var(--ease-out); }
+.toast::before { font-weight: 800; flex: none; }
+.toast.success::before { content: '✓'; color: #7ce0a3; }
+.toast.error::before { content: '!'; color: #ffb3a7; }
+.toast[data-state="pre"] { opacity: 0; transform: translateY(12px) scale(.97); }
+.toast[data-state="out"] { opacity: 0; transform: translateY(6px) scale(.98); transition-duration: .2s; }
+
+/* ---------- confirm dialog (replaces confirm(); modal, so it scales from center) ---------- */
+.dialog-wrap { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 16px; }
+.dialog-wrap .dscrim { position: absolute; inset: 0; background: rgba(31, 27, 23, .42); opacity: 0; transition: opacity .25s ease; }
+.dialog { position: relative; width: min(400px, 100%); background: var(--panel); border-radius: 16px; padding: 20px; box-shadow: 0 24px 70px rgba(0, 0, 0, .28); opacity: 0; transform: scale(.96); transition: transform .2s var(--ease-out), opacity .2s var(--ease-out); }
+.dialog-wrap.open .dscrim { opacity: 1; }
+.dialog-wrap.open .dialog { opacity: 1; transform: none; }
+.dialog-wrap:not(.open) .dialog, .dialog-wrap:not(.open) .dscrim { transition-duration: .15s; }
+.dialog h3 { margin: 0 0 6px; font-size: 16px; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.dialog p { margin: 0 0 18px; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+.dialog .dactions { display: flex; gap: 8px; justify-content: flex-end; }
+.btn-danger { background: var(--danger); color: #fff; box-shadow: 0 6px 16px rgba(194, 55, 43, .3); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
@@ -536,6 +571,61 @@ function renderDrawer() {
 
 function renderAll() { renderStats(); renderFilters(); renderRows(); renderDrawer(); }
 
+// ---------- toast + confirm dialog (replace alert()/confirm()) ----------
+function toast(message, opts = {}) {
+  let host = document.getElementById('toasts');
+  if (!host) { host = document.createElement('div'); host.id = 'toasts'; host.className = 'toasts'; host.setAttribute('aria-live', 'polite'); document.body.appendChild(host); }
+  while (host.children.length >= 3) host.firstChild.remove();
+  const el = document.createElement('div');
+  el.className = `toast ${opts.type || ''}`.trim();
+  el.setAttribute('role', 'status');
+  el.textContent = message;
+  el.dataset.state = 'pre';
+  host.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => { delete el.dataset.state; }));
+  const hide = () => {
+    if (el.dataset.state === 'out') return;
+    el.dataset.state = 'out';
+    el.addEventListener('transitionend', () => el.remove(), { once: true });
+    setTimeout(() => el.remove(), 350);
+  };
+  setTimeout(hide, opts.duration || (opts.type === 'error' ? 5000 : 3000));
+  el.addEventListener('click', hide);
+}
+function confirmDialog({ title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false }) {
+  return new Promise(resolve => {
+    const wrap = document.createElement('div');
+    wrap.className = 'dialog-wrap';
+    wrap.innerHTML = `<div class="dscrim"></div>
+      <div class="dialog" role="alertdialog" aria-modal="true" aria-label="${esc(title)}">
+        <h3>${esc(title)}</h3>${message ? `<p>${esc(message)}</p>` : ''}
+        <div class="dactions">
+          <button class="btn" data-act="no">${esc(cancelLabel)}</button>
+          <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-act="yes">${esc(confirmLabel)}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(wrap);
+    const done = result => {
+      document.removeEventListener('keydown', onKey, true);
+      wrap.classList.remove('open');
+      wrap.querySelector('.dialog').addEventListener('transitionend', () => wrap.remove(), { once: true });
+      setTimeout(() => wrap.remove(), 300);
+      resolve(result);
+    };
+    const onKey = e => {
+      if (e.key === 'Escape') { e.stopPropagation(); done(false); }
+      else if (e.key === 'Enter') { e.stopPropagation(); done(true); }
+    };
+    document.addEventListener('keydown', onKey, true);
+    wrap.querySelector('.dscrim').addEventListener('click', () => done(false));
+    wrap.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => done(b.dataset.act === 'yes')));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      wrap.classList.add('open');
+      wrap.querySelector('[data-act="no"]').focus();
+    }));
+  });
+}
+
 // ---------- actions ----------
 function isFiltered() {
   return state.q || state.project !== 'all' || state.event !== 'all' || state.due !== 'all' || state.status !== 'all' || state.source !== 'all' || state.stages.size !== STAGES.length;
@@ -566,28 +656,40 @@ function toggleStage(id) {
   renderAll();
 }
 function setSort(key) { state.sort = key; renderAll(); }
-function openDrawer(id) {
-  if (id !== state.openId && dirty() && !confirm('Discard unsaved changes to this contact?')) return;
+const discardPrompt = () => confirmDialog({
+  title: 'Discard unsaved changes?',
+  message: 'Your edits to this contact have not been saved and will be lost.',
+  confirmLabel: 'Discard changes', cancelLabel: 'Keep editing', danger: true,
+});
+async function openDrawer(id) {
+  if (id !== state.openId && dirty() && !(await discardPrompt())) return;
   if (id !== state.openId) state.draft = {};
   state.openId = id; renderRows(); renderDrawer();
 }
-function closeDrawer() {
-  if (dirty() && !confirm('Discard unsaved changes?')) return;
+async function closeDrawer() {
+  if (dirty() && !(await discardPrompt())) return;
   state.draft = {}; state.openId = null; renderRows(); renderDrawer();
 }
 
 async function deleteContact(id, button) {
   const contact = db.get('contacts', id);
-  if (!contact || !confirm(`Delete ${contact.name || 'this contact'} and its note and recording? This cannot be undone.`)) return;
+  if (!contact) return;
+  const ok = await confirmDialog({
+    title: `Delete ${contact.name || 'this contact'}?`,
+    message: 'The note and recording are deleted too. This cannot be undone.',
+    confirmLabel: 'Delete contact', cancelLabel: 'Keep contact', danger: true,
+  });
+  if (!ok) return;
   button.disabled = true; button.textContent = 'Deleting…';
   try {
     const result = await db.deleteContact(id);
     state.openId = null;
     renderAll();
-    if (!result.audioRemoved) alert('The contact was deleted, but its audio file could not be removed from Storage.');
+    toast('Contact deleted', { type: 'success' });
+    if (!result.audioRemoved) toast('The audio file could not be removed from Storage.', { type: 'error' });
   } catch (error) {
     button.disabled = false; button.textContent = 'Delete contact';
-    alert(`Could not delete contact: ${error.message || error}`);
+    toast(`Could not delete contact: ${error.message || error}`, { type: 'error' });
   }
 }
 
@@ -617,8 +719,7 @@ function saveDraft() {
   db.update('contacts', state.openId, state.draft);
   state.draft = {};
   renderAll();
-  const note = document.getElementById('saveState');
-  if (note) { note.textContent = 'Saved ✓'; note.classList.add('ok'); }
+  toast('Changes saved', { type: 'success' });
 }
 function discardDraft() { state.draft = {}; renderDrawer(); }
 function copyDraft(btn) {
@@ -626,7 +727,7 @@ function copyDraft(btn) {
   btn.textContent = 'Copied ✓';
   setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
 }
-async function signOut() { try { await db.signOut(); } catch (error) { alert(`Could not sign out: ${error.message}`); } }
+async function signOut() { try { await db.signOut(); } catch (error) { toast(`Could not sign out: ${error.message}`, { type: 'error' }); } }
 
 document.getElementById('q').addEventListener('input', e => { state.q = e.target.value; state.statFilter = null; renderRows(); document.getElementById('clearBtn').style.visibility = isFiltered() ? 'visible' : 'hidden'; });
 [['fProject', 'project'], ['fEvent', 'event'], ['fDue', 'due'], ['fStatus', 'status'], ['fSource', 'source'], ['sortSel', 'sort']].forEach(([id, key]) =>
@@ -634,7 +735,7 @@ document.getElementById('q').addEventListener('input', e => { state.q = e.target
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && state.openId) closeDrawer(); });
 // The phone app saved something in another tab.
 window.addEventListener('db-change', () => { if (state.openId && !db.get('contacts', state.openId)) state.openId = null; renderAll(); });
-window.addEventListener('db-error', e => alert(`Could not sync with Supabase: ${e.detail}`));
+window.addEventListener('db-error', e => toast(`Could not sync with Supabase: ${e.detail}`, { type: 'error' }));
 window.addEventListener('auth-change', () => location.replace('login.html?next=dashboard.html'));
 db.init().then(authenticated => {
   if (!authenticated) { location.replace('login.html?next=dashboard.html'); return; }
