@@ -276,6 +276,9 @@ ul.bul li { margin: 3px 0; }
 .copy { font-size: 12.5px; font-weight: 600; color: var(--accent-ink); }
 .label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 16px 0 6px; display: flex; justify-content: space-between; align-items: center; }
 .label .ai { text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--accent); }
+.label .label-actions { display: inline-flex; align-items: center; gap: 10px; }
+.nextstep { display: flex; gap: 10px; align-items: center; }
+.btn-done { background: var(--ok-soft); color: var(--ok); }
 
 /* ---------- saved ---------- */
 .success { text-align: center; padding: 16px 0 6px; }
@@ -860,7 +863,7 @@ const SCREENS = {
         <label class="field" style="flex:1.4"><span>Next step</span><input class="edit" value="${esc(d.next_step)}" oninput="ui.draft.next_step=this.value"></label>
         <label class="field"><span>Due</span><input class="edit" type="date" value="${d.next_step_date || ''}" onchange="ui.draft.next_step_date=this.value||null"></label>
       </div>
-      <div class="label">Follow-up draft <button class="copy" onclick="copyText(this, ui.draft.follow_up_draft)">Copy</button></div>
+      <div class="label">Follow-up draft <span class="label-actions">${srcBadge(d.source, d.profile_url)}<button class="copy" onclick="copyText(this, ui.draft.follow_up_draft)">Copy</button></span></div>
       <textarea class="edit" rows="4" oninput="ui.draft.follow_up_draft=this.value">${esc(d.follow_up_draft)}</textarea>
       <details style="margin-top:12px"><summary class="muted small" style="cursor:pointer">Your original note</summary><p class="small">${esc(d.note_text)}</p></details>
       <p class="muted small" style="margin:8px 2px 0">Nothing is sent to ${esc((d.name || 'them').split(' ')[0])} automatically.</p>
@@ -897,9 +900,10 @@ const SCREENS = {
         ${c.match_reason ? `<div class="reason">${esc(c.match_reason)}</div>` : ''}</div>
       <div class="label">Summary</div><div>${esc(c.summary)}</div>
       ${c.discussed?.length ? `<div class="label">What you talked about</div><div class="card"><ul class="bul">${c.discussed.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
-      <div class="label">Next step</div><div><b>${esc(c.next_step || '—')}</b>${c.next_step_date ? ' · ' + fmtDate(c.next_step_date) : ''}</div>
-      <div class="label">Stage</div><div><span class="pill grey">${STAGE_LABEL[c.stage]}</span> <span class="muted small">change it in the dashboard</span></div>
-      ${c.follow_up_draft ? `<div class="label">Follow-up draft <button class="copy" onclick="copyText(this, db.get('contacts', ui.contactId).follow_up_draft)">Copy</button></div><div class="card small">${esc(c.follow_up_draft)}</div>` : ''}`;
+      <div class="label">Next step</div>
+      <div class="nextstep"><div style="flex:1"><b>${esc(c.next_step || '—')}</b>${c.next_step_date ? ' · ' + fmtDate(c.next_step_date) : ''}</div>${c.next_step || c.stage === 'to_follow_up' ? `<button class="btn btn-sm btn-done" onclick="completeNextStep()">✓ Done</button>` : ''}</div>
+      <div class="label">Stage</div><div><span class="pill ${c.stage === 'won' ? 'ok' : 'grey'}">${STAGE_LABEL[c.stage]}</span></div>
+      ${c.follow_up_draft ? `<div class="label">Follow-up draft <span class="label-actions">${srcBadge(c.source, c.profile_url)}<button class="copy" onclick="copyText(this, db.get('contacts', ui.contactId).follow_up_draft)">Copy</button></span></div><div class="card small">${esc(c.follow_up_draft)}</div>` : ''}`;
   },
 };
 
@@ -1451,6 +1455,18 @@ function openContact(id) {
   go('detail');
 }
 function editContact() { ui.draft = db.get('contacts', ui.contactId); ui.from = 'detail'; go('review'); }
+// The follow-up was done: advance the stage right here, no dashboard trip needed.
+async function completeNextStep() {
+  const c = db.get('contacts', ui.contactId);
+  if (!c) return;
+  db.update('contacts', c.id, {
+    stage: c.stage === 'to_follow_up' ? 'followed_up' : c.stage,
+    next_step: null, next_step_date: null,
+  });
+  render();
+  toast('Follow-up marked as done', { type: 'success' });
+  if (db.live) { try { await db.flush('contacts', c.id); } catch (error) { toast(`Could not save: ${error.message || error}`, { type: 'error' }); } }
+}
 async function deleteCurrentContact() {
   const contact = db.get('contacts', ui.contactId);
   if (!contact) return;
