@@ -48,7 +48,7 @@ sequenceDiagram
 | **supabase-js** | the 4 data calls from both pages | browser | CDN or npm; replaces `data.js` internals | Nodir + Utkarsh | ❌ |
 | **Supabase CLI** | apply migration, deploy Edge Fn, set secrets | dev laptops | `supabase login`, `supabase link` | Utkarsh | ❌ |
 | **AI provider** (per D2, mentor key) | STT (voice→text) · LLM call 1 (summary) · LLM call 2 (match + draft) · vision only if D4 stays in | **Edge Function only** — never the browser | `supabase secrets set AI_API_KEY=...` | Utkarsh | ❌ |
-| **html5-qrcode** | camera QR decode (D3) | phone page | CDN script | Nodir | ❌ |
+| **html5-qrcode** | camera QR decode (D3) | phone page | CDN script | Nodir | ✅ wired in the prototype (camera needs HTTPS on the phone) |
 | **MediaRecorder API** | voice memo | phone page | built-in; ⚠️ Safari records `audio/mp4`, Chrome `audio/webm` — send the blob with its actual mimeType. Audio is never stored | Nodir | — |
 | **HTTPS static hosting** (D9: Vercel/Netlify) | serve the two pages; camera+mic require HTTPS | cloud | one-command deploy | Utkarsh | ❌ today |
 | GitHub | repo + submission (M6) | — | all 5 have access | Nodir | ✅ |

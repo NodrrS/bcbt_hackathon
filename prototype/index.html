@@ -9,6 +9,7 @@
   choose / create event → enter event → scan → typed note or voice memo → processing → review & assign project → saved.
   Rows are read and written through data.js, a localStorage mirror of the Supabase schema, shared with dashboard.html.
   Everything is demo data. simulateAI() stands in for the real LLM call; db.* stands in for supabase-js.
+  QR scanning is real (html5-qrcode + camera) on HTTPS or localhost; elsewhere the chips and paste field below the viewfinder stand in.
 -->
 <style>
 :root {
@@ -167,6 +168,10 @@ textarea.edit:focus, input.edit:focus, select.edit:focus { outline: 2px solid va
 .viewfinder.hit .qr { opacity: 1; filter: none; }
 .viewfinder.hit .line { display: none; }
 .viewfinder.hit .corner { border-color: #5be38f; }
+.viewfinder #camview { position: absolute; inset: 0; }
+.viewfinder #camview video { width: 100%; height: 100%; object-fit: cover; }
+.viewfinder.live .qr { display: none; }
+.camstatus { color: var(--accent-2); font-size: 12.5px; margin-top: 6px; }
 .detected { text-align: center; min-height: 54px; font-size: 14px; }
 .detected .ok { color: #5be38f; font-weight: 700; }
 .detected code { font-size: 12.5px; color: #e8dccf; }
@@ -279,6 +284,7 @@ ul.bul li { margin: 3px 0; }
 </div>
 
 <script src="data.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script>
 const ACTIVE_KEY = 'syncy-active-event';
 
@@ -325,7 +331,7 @@ function freshUi() {
     tab: 'today', screen: 'today', eventId, pickId: null, eventForm: null,
     contactId: null, draft: null, from: null,
     noteMode: 'text', noteText: '', rec: { status: 'idle', secs: 0, words: 0 },
-    justScanned: null,
+    justScanned: null, scanMsg: null,
   };
 }
 function setActiveEvent(id) {
@@ -386,6 +392,7 @@ const ICONS = {
 
 // ---------- navigation ----------
 function go(screen) {
+  stopCamera();
   clearTimers();
   if (['today', 'contacts', 'projects'].includes(screen)) ui.tab = screen;
   ui.screen = screen;
@@ -466,6 +473,7 @@ const SCREENS = {
     return `
       <div class="flowbar"><button class="icon-btn" onclick="go('today')">✕</button><span class="step">${esc(ev.name)} · Scan</span><span style="width:36px"></span></div>
       <div class="viewfinder ${hit ? 'hit' : ''}">
+        ${hit ? '' : '<div id="camview"></div>'}
         ${qrSvg(hit ? hit.profile_url : 'placeholder')}
         <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
         <span class="line"></span>
@@ -473,9 +481,9 @@ const SCREENS = {
       <div class="detected">${hit
         ? `<div class="ok">✓ ${SOURCE_LABEL[hit.source]} profile saved</div>
            <div class="saved-row"><div><span>name</span>${esc(hit.name || '—')}</div><div><span>profile_slug</span>${esc(hit.profile_slug)}</div><div><span>profile_url</span><code>${esc(hit.profile_url)}</code></div></div>`
-        : '<div>Point the camera at a LinkedIn or Xing QR code</div>'}</div>
+        : `<div>Point the camera at a LinkedIn or Xing QR code</div><div class="camstatus" id="camstatus">${esc(ui.scanMsg || '')}</div>`}</div>
       ${hit ? '' : `<div class="demo-pick">
-        <p>Demo: no camera in the prototype. Tap a profile to simulate a scan…</p>
+        <p>No QR in reach? Tap a profile to simulate a scan…</p>
         ${PERSONAS.map(p => {
           const parsed = parseProfile(p.url);
           const taken = db.findContact(ui.eventId, parsed.profile_url);
@@ -685,6 +693,11 @@ function procSteps(c) {
     'Drafting a follow-up'];
 }
 const AFTER = {
+  scan() {
+    stopCamera();
+    // Next tick: jumpTo() scans synchronously right after render, and then no camera (or permission prompt) is wanted.
+    later(() => { if (ui.screen === 'scan' && !ui.justScanned) startCamera(); }, 0);
+  },
   processing() {
     const lis = [...document.querySelectorAll('#steps li')];
     lis.forEach((li, i) => {
@@ -743,14 +756,61 @@ function enterEvent() { setActiveEvent(ui.pickId); ui.editUrl = false; go('today
 function leaveEvent() { setActiveEvent(null); ui.editUrl = false; go('today'); }
 
 // ---------- actions: scan ----------
-function startScan() { ui.justScanned = null; go('scan'); }
+function startScan() { ui.justScanned = null; ui.scanMsg = null; go('scan'); }
 function scanUrl() {
   const v = document.getElementById('urlIn').value.trim();
   if (v) scanned(v);
 }
+
+// Real camera decode (html5-qrcode). Falls back to the chips + paste field below
+// whenever the camera can't run: no HTTPS, no permission, no camera, CDN offline.
+let qrcam = null;
+function stopCamera() {
+  if (!qrcam) return;
+  const cam = qrcam;
+  qrcam = null;
+  cam.stop().then(() => cam.clear()).catch(() => {});
+}
+function startCamera() {
+  const mount = document.getElementById('camview');
+  if (!mount || qrcam) return;
+  if (!window.Html5Qrcode) { camStatus('Camera library not loaded — use the options below.'); return; }
+  if (!window.isSecureContext) { camStatus('Camera needs HTTPS. Open the https:// link to scan live; the options below work everywhere.'); return; }
+  camStatus('Starting camera…');
+  let decoded = false;
+  const cam = new Html5Qrcode('camview');
+  qrcam = cam;
+  cam.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 175, height: 175 } },
+    text => { if (decoded) return; decoded = true; stopCamera(); scanned(text); },
+    () => { /* per-frame "no QR in view" — not an error */ },
+  ).then(() => {
+    camStatus('');
+    document.querySelector('.viewfinder')?.classList.add('live');
+  }).catch(err => {
+    qrcam = null;
+    camStatus(/NotAllowed/i.test(String(err))
+      ? 'Camera permission denied — allow it in the browser, or use the options below.'
+      : 'No usable camera here — use the options below.');
+  });
+}
+function camStatus(msg) { const el = document.getElementById('camstatus'); if (el) el.textContent = msg; }
+
+// MVP scan scope (PRD §2): LinkedIn/Xing parse fully, any other URL saves as qr_other.
+// Non-URL payloads (vCard, Wi-Fi, tickets) are a later iteration — reject them instead of saving a junk row.
+function rejectPayload(raw) {
+  if (/^(BEGIN:VCARD|MECARD:)/i.test(raw)) return 'That’s a contact-card QR (vCard) — not supported yet. Ask for their LinkedIn or Xing QR instead.';
+  if (/^WIFI:/i.test(raw)) return 'That’s a Wi-Fi QR, not a profile.';
+  if (!normalizeUrl(raw)) return 'No web link in this QR — point at a LinkedIn or Xing profile code.';
+  return null;
+}
+
 // Scan = save immediately: profile_url, slug and name-from-slug (FR-1, P-1).
 function scanned(raw) {
-  const parsed = parseProfile(raw);
+  const payload = String(raw).trim();
+  const rejected = rejectPayload(payload);
+  if (rejected) { ui.scanMsg = rejected; render(); return; }
+  ui.scanMsg = null;
+  const parsed = parseProfile(payload);
   let row = db.findContact(ui.eventId, parsed.profile_url);
   if (!row) {
     row = db.insert('contacts', { ...parsed, event_id: ui.eventId, scanned_at: nowIso(), status: 'captured' });
