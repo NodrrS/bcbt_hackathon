@@ -319,6 +319,7 @@ const COLORS = ['#e4602a', '#2c8a57', '#0a66c2', '#7a4bc0', '#c2410c', '#0f766e'
 const STAGE_LABEL = { to_follow_up: 'To follow up', followed_up: 'Followed up', meeting_set: 'Meeting set', won: 'Won', not_relevant: 'Not relevant' };
 
 let ui;
+let notionUi = { connected: false, workspace: '', sources: [], selected: '', busy: false, message: '' };
 window.syncyVoiceDebug = (id, stage, details = {}) => console.info('[VOICE-DEBUG]', id, stage, details);
 function freshUi() {
   let eventId = null;
@@ -439,7 +440,18 @@ const SCREENS = {
     const all = db.list('contacts');
     return `
       <div class="title">Your projects</div>
-      <p class="sub small">The AI compares every new contact with these descriptions. Stored in Syncy; importing from Notion or your notes app comes in Phase 2.</p>
+      <p class="sub small">The AI compares every new contact with these descriptions. Imported Notion projects are copied into Syncy and work like your other projects.</p>
+      <div class="card">
+        <div style="font-weight:700">Import projects from Notion</div>
+        <p class="muted small">Connect a workspace, choose a shared projects database, and copy its projects into Syncy.</p>
+        ${notionUi.connected ? `<div class="muted small" style="margin-bottom:10px">Connected${notionUi.workspace ? ` to ${esc(notionUi.workspace)}` : ''} · Notion access stays private to your account</div>
+          <button class="btn" onclick="loadNotionSources()" ${notionUi.busy ? 'disabled' : ''}>Choose database</button>
+          ${notionUi.sources.length ? `<label class="field"><span>Projects database</span><select class="edit" id="notionSource" onchange="notionUi.selected=this.value">${notionUi.sources.map(source => `<option value="${esc(source.id)}" ${source.id === notionUi.selected ? 'selected' : ''}>${esc(source.title)}</option>`).join('')}</select></label>
+            <button class="btn btn-primary btn-block" style="margin-top:10px" onclick="importNotionProjects()" ${notionUi.busy ? 'disabled' : ''}>${notionUi.busy ? 'Importing…' : 'Import projects'}</button>` : ''}
+          <button class="linkbtn" style="margin:10px 0 0 10px" onclick="connectNotion()" ${notionUi.busy ? 'disabled' : ''}>Reconnect</button>`
+          : `<button class="btn btn-primary" onclick="connectNotion()" ${notionUi.busy ? 'disabled' : ''}>${notionUi.busy ? 'Connecting…' : 'Connect Notion'}</button>`}
+        ${notionUi.message ? `<div class="muted small" role="status" style="margin-top:10px">${esc(notionUi.message)}</div>` : ''}
+      </div>
       ${projects().map(p => {
         const list = all.filter(c => c.project_id === p.id);
         return `<div class="card proj-card">
@@ -594,7 +606,7 @@ const SCREENS = {
         <p class="sub">${esc(c.name)} is filed under ${p ? `<b>${p.emoji} ${esc(p.name)}</b>` : 'your contacts'}${c.next_step ? `, next: ${esc(c.next_step)}${c.next_step_date ? ' (' + fmtDate(c.next_step_date) + ')' : ''}` : ''}.</p></div>
       <div class="section-title">At ${esc(event(c.event_id)?.name || 'this event')}</div>
       ${eventContacts(c.event_id).map(personRow).join('')}
-      <div class="phase2"><span class="n-logo">N</span>Sync to Notion or your notes app arrives in Phase 2. Until then, everything is in your Syncy dashboard.</div>
+      <div class="phase2"><span class="n-logo">N</span>Notion is used to import projects only. Contacts and notes stay in Syncy.</div>
       <div class="row" style="margin-top:16px">
         <a class="btn" href="dashboard.html">Dashboard</a>
         <button class="btn btn-primary" onclick="startScan()">Scan next person</button>
@@ -1016,6 +1028,51 @@ function addProject() {
   render();
 }
 
+async function refreshNotionStatus() {
+  try {
+    const result = await db.notion('status');
+    notionUi.connected = Boolean(result.connected);
+    notionUi.workspace = result.workspace_name || '';
+  } catch (error) {
+    notionUi.connected = false;
+    notionUi.message = error.message || 'Notion import is not configured yet.';
+  }
+}
+
+async function connectNotion() {
+  notionUi.busy = true; notionUi.message = ''; render();
+  try {
+    const redirectUri = new URL('notion-callback.html', location.origin).href;
+    const result = await db.notion('start', { redirect_uri: redirectUri });
+    location.assign(result.authorization_url);
+  } catch (error) {
+    notionUi.busy = false; notionUi.message = error.message || 'Could not start Notion connection.'; render();
+  }
+}
+
+async function loadNotionSources() {
+  notionUi.busy = true; notionUi.message = 'Loading databases shared with Syncy…'; render();
+  try {
+    const result = await db.notion('sources');
+    notionUi.sources = result.sources || [];
+    notionUi.selected = notionUi.sources.some(source => source.id === notionUi.selected) ? notionUi.selected : notionUi.sources[0]?.id || '';
+    notionUi.message = notionUi.sources.length ? 'Choose the database that contains your projects.' : 'No shared databases found. Reconnect and share the projects database in Notion’s access picker.';
+  } catch (error) { notionUi.message = error.message || 'Could not load Notion databases.'; }
+  notionUi.busy = false; render();
+}
+
+async function importNotionProjects() {
+  const sourceId = document.getElementById('notionSource')?.value || notionUi.selected;
+  if (!sourceId) { notionUi.message = 'Choose a Notion projects database first.'; render(); return; }
+  notionUi.busy = true; notionUi.message = 'Copying projects from Notion…'; render();
+  try {
+    const result = await db.notion('import', { data_source_id: sourceId });
+    await db.reload(false);
+    notionUi.message = `Imported ${result.added} new and refreshed ${result.updated} existing projects.${result.empty_descriptions ? ` ${result.empty_descriptions} have no description.` : ''}`;
+  } catch (error) { notionUi.message = error.message || 'Could not import Notion projects.'; }
+  notionUi.busy = false; render();
+}
+
 function copyText(btn, text) {
   navigator.clipboard?.writeText(text || '').catch(() => {});
   btn.textContent = 'Copied ✓';
@@ -1033,7 +1090,11 @@ db.init().then(authenticated => {
   document.getElementById('sideIntro').textContent = `Signed in as ${db.user.email || 'your account'}:`;
   document.getElementById('sideNote').textContent = 'Contacts, events, projects, and transcripts belong to your account. Voice audio is transcribed without being stored.';
   document.getElementById('signOutButton').hidden = false;
-  ui = freshUi(); render();
+  ui = freshUi();
+  const params = new URLSearchParams(location.search);
+  if (params.get('tab') === 'projects') { ui.tab = 'projects'; ui.screen = 'projects'; }
+  if (params.get('notion') === 'connected') notionUi.message = 'Notion connected. Choose the database that contains your projects.';
+  refreshNotionStatus().then(() => render());
 }).catch(error => {
   document.getElementById('modeBanner').textContent = 'Supabase connection failed';
   document.getElementById('sideNote').textContent = error.message || 'Check the Supabase URL and public key, then reload.';
