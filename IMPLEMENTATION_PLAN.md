@@ -160,4 +160,5 @@ The prototype already uses the schema's table and column names. Replace the four
 ## Later (Phase 2, not this weekend)
 - Notion / notes-app sync: projects in, contacts out ([docs/DATA_MODEL.md §5](docs/DATA_MODEL.md), [docs/ARCHITECTURE.md §3](docs/ARCHITECTURE.md))
 - Badge / business-card photo and vCard QR (D4)
+- QR payloads beyond LinkedIn/Xing (PRD §2 scan scope, 24 Oct): non-URL guard (vCard/MeCard/wifi/ticket QRs → friendly message, no junk row) · vCard/MeCard parsing (name, role, company, email — needs an `email` column) · per-pattern name extraction for other social URLs · ticket-QR detection. Other URLs already save as `qr_other` today.
 - Reminders when a follow-up is due

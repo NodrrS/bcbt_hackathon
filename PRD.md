@@ -36,6 +36,8 @@
 - ❌ Both-sided Syncy QR / consent exchange — roadmap slide only.
 - ❌ Native iOS/Android app — web app on the phone browser. 🔒 D1
 
+**QR scan scope (decided 24 Oct):** MVP reads **LinkedIn and Xing profile QRs** (`qr_linkedin`, `qr_xing`); any other **URL** QR still saves as `qr_other` (link kept, name best-effort from the slug, corrected in review). **Future iterations, not this weekend:** non-URL payloads — a guard that rejects vCard/MeCard/wifi/ticket QRs with a friendly message instead of writing a junk row; vCard/MeCard parsing (badge QRs carry name, role, company, email — needs an `email` column migration); per-pattern name extraction for other social URLs (Instagram, Telegram, linktr.ee); ticket-QR detection (Eventbrite/Luma/Meetup). All deterministic string parsing — no AI in the scan path.
+
 ## 3. Target user
 
 ICP v1 (Anastasiya refines from interviews): freelance consultant / developer in Berlin who attends ~2+ networking events per month to find clients, uses LinkedIn (or Xing) + a notes app + memory today, and has a running list of own projects/goals.
