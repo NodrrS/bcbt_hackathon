@@ -18,7 +18,7 @@ Built at the BCBT AI Entrepreneurship Hackathon, CIC Berlin, 23–26 Oct 2026.
 | [prototype/index.html](prototype/index.html) | Clickable phone prototype, Phase 1 flow (demo data, AI simulated) |
 | [prototype/dashboard.html](prototype/dashboard.html) | Contacts dashboard: filter, sort, edit (shares data with the phone prototype) |
 | [docs/DATA_MODEL.md](docs/DATA_MODEL.md) | Phase 1 data model, flow, and Phase 2 Notion / notes-app sync design |
-| [supabase/migrations/](supabase/migrations/) | Supabase schema (events, projects, contacts, RLS, voice-notes bucket) |
+| [supabase/migrations/](supabase/migrations/) | Supabase schema (events, projects, contacts, RLS; audio is never stored — voice is transcribe-only) |
 | [PM_PLAN.md](PM_PLAN.md) | Plan, roles, timeline, cost log, decisions |
 | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | Per-person Day 1–4 checklists |
 | [ACCEPTANCE_CRITERIA.md](ACCEPTANCE_CRITERIA.md) | Milestone gates and product acceptance criteria |

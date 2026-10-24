@@ -818,7 +818,6 @@ function processNote() {
   db.update('contacts', id, {
     note_kind: voice ? 'voice' : 'text',
     note_text: ui.noteText.trim(),
-    audio_path: voice ? `demo-user/${id}.webm` : null,
     status: 'processing',
   });
   go('processing');

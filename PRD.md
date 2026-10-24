@@ -62,7 +62,7 @@ Original flow (before the Phase 1 decision; [docs/screenshots/](docs/screenshots
 |---|---|---|
 | **Today** | List of today's contacts: name, one-line summary, status chip (awaiting note / processed / saved). CTA: big "Scan" button. | Entry point; empty state explains the 3 steps. |
 | **Scan** | Camera viewfinder, QR auto-detect; toggle "Photo of badge". On success: name + profile link appear instantly (from URL slug). | Browser camera API — needs HTTPS. 🔒 D3, D9 |
-| **Record** | Hold-to-record (or tap start/stop), max 60 s, timer, waveform. Optional: event name field (prefilled, editable). | Audio stays until processed (P-5). |
+| **Record** | Hold-to-record (or tap start/stop), max 60 s, timer, waveform. Optional: event name field (prefilled, editable). | Audio stays **in the browser** until processed, then is discarded — never stored (P-5). |
 | **Processing** | Progress state ≤ 15 s (P-2). | Show per-step status: transcribe → summarize → match. |
 | **Review** | Card with every field editable: name, role, company, discussed (≤3 bullets), they need, next step + date, matched project + reason, follow-up draft. Buttons: Save to Notion / Re-record. | Empty fields show as empty, never invented (P-2). |
 | **Saved** | Confirmation + deep link to the Notion row. | |
@@ -81,7 +81,7 @@ Original flow (before the Phase 1 decision; [docs/screenshots/](docs/screenshots
 | FR-7 | LLM call 2: summary + user's Notion projects → best project or "none" + one-line reason quoting the conversation + follow-up draft | P-3 | 2 AM/PM |
 | FR-8 | Review screen: every field editable before save | P-2 | 2 |
 | FR-9 | ⚠️ Phase 1: on scan, insert the `contacts` row in Supabase; on confirm, update it to `status = 'saved'` with the edited fields and assigned project. (Writing to Notion moves to Phase 2.) | P-4 | 2 |
-| FR-10 | On AI/Notion failure or timeout: clear message, audio + fields retained, one-tap retry | P-5 | 2 PM–3 |
+| FR-10 | On AI/Notion failure or timeout: clear message, fields retained (the browser still holds the audio and re-sends it on retry), one-tap retry | P-5 | 2 PM–3 |
 | FR-11 | Today list shows all contacts of the day with status | — | 2 PM |
 
 **M3 midday slice (what must work by Sat midday):** FR-1 → FR-4 → FR-5 → FR-6 shown on screen. FR-7/FR-9 same afternoon. 🔒 D5 (slice definition confirmed with mentor)

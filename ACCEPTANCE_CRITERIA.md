@@ -142,7 +142,7 @@ Mapped to the judging weights:
 - Given a captured contact
 - When the user writes a note, or records a voice memo of up to 60 s, and taps Process
 - Then within 15 s the review screen shows: name, role, company, summary, what was discussed (≤ 3), what they need, next step + date, follow-up draft
-- And a voice memo is stored in the private `voice-notes` bucket and transcribed into `note_text`
+- And a voice memo is transcribed into `note_text` — **the audio itself is never stored**, it exists only in the browser and in the transcription call
 - And fields the AI cannot fill are left empty, not invented
 - And "Later" keeps the contact on the list with a "Needs a note" badge
 

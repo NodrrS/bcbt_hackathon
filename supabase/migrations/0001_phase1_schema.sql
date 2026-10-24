@@ -74,9 +74,10 @@ create table contacts (
   scanned_at       timestamptz not null default now(),
 
   -- 2. Note (typed or voice)
+  -- Audio is never stored: a voice memo is sent to the processing endpoint,
+  -- transcribed, and discarded; only the transcript lands in note_text.
   note_kind        note_kind,
   note_text        text,                -- the typed note, or the transcript of the voice memo
-  audio_path       text,                -- Storage object in the private 'voice-notes' bucket
 
   -- 3. AI output (every field editable in review and in the dashboard)
   summary          text,
@@ -117,12 +118,3 @@ alter table contacts enable row level security;
 create policy "own events"   on events   for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "own projects" on projects for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "own contacts" on contacts for all using (user_id = auth.uid()) with check (user_id = auth.uid());
-
--- ---------- storage: voice memos ----------
-insert into storage.buckets (id, name, public) values ('voice-notes', 'voice-notes', false)
-on conflict (id) do nothing;
-
--- Objects are stored as '<user_id>/<contact_id>.webm'.
-create policy "own voice notes" on storage.objects for all
-  using (bucket_id = 'voice-notes' and (storage.foldername(name))[1] = auth.uid()::text)
-  with check (bucket_id = 'voice-notes' and (storage.foldername(name))[1] = auth.uid()::text);

@@ -259,6 +259,7 @@ User does ──▶ [input] ──▶ AI does <job> ──▶ [output on one scr
 | 23 Oct | Name: **Syncy** (product + team) | Team | Used in pitch, prototype, slides |
 | 23 Oct | **Phase 1 = Supabase** (events, projects, contacts); event picker, typed or voice notes, manual project pick, contacts dashboard. **Notion / notes-app sync = Phase 2** | Nodir (PM) | Supersedes "Notion only" below; schema in supabase/migrations, plan in IMPLEMENTATION_PLAN.md |
 | 23 Oct | No LinkedIn scraping — store profile URL only; Notion only (Drive later); fake personas for demo | Team | Avoids ToS / personal-data risk |
+| 24 Oct | **Audio is never stored** — a voice memo goes to the processing endpoint for transcription only and is discarded; the blob stays in the browser until processing succeeds | Nodir (PM) | No Storage bucket, no `audio_path`; simpler backend + privacy point for the pitch; schema and docs updated |
 
 ## 10. Help
 
