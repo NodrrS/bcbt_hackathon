@@ -64,7 +64,7 @@ Original flow (before the Phase 1 decision; [docs/screenshots/](docs/screenshots
 |---|---|---|
 | **Today** | List of today's contacts: name, one-line summary, status chip (awaiting note / processed / saved). CTA: big "Scan" button. | Entry point; empty state explains the 3 steps. |
 | **Scan** | Camera viewfinder, QR auto-detect; toggle "Photo of badge". On success: name + profile link appear instantly (from URL slug). | Browser camera API — needs HTTPS. 🔒 D3, D9 |
-| **Record** | Hold-to-record (or tap start/stop), max 60 s, timer, waveform. Optional: event name field (prefilled, editable). | Audio stays **in the browser** until processed, then is discarded — never stored (P-5). |
+| **Record** | Hold-to-record (or tap start/stop), max 60 s, timer, waveform. Optional: event name field (prefilled, editable). | Used for **speech-to-text only**: the transcript is kept, no audio file is ever saved (P-5). |
 | **Processing** | Progress state ≤ 15 s (P-2). | Show per-step status: transcribe → summarize → match. |
 | **Review** | Card with every field editable: name, role, company, discussed (≤3 bullets), they need, next step + date, matched project + reason, follow-up draft. Buttons: Save to Notion / Re-record. | Empty fields show as empty, never invented (P-2). |
 | **Saved** | Confirmation + deep link to the Notion row. | |
@@ -77,13 +77,13 @@ Original flow (before the Phase 1 decision; [docs/screenshots/](docs/screenshots
 | FR-1 | Decode LinkedIn (`linkedin.com/in/<slug>`) and Xing (`xing.com/profile/<name>`) QR codes; store URL only; derive display name from slug | P-1 | 1–2 |
 | FR-2 | vCard QR support: if the QR is a vCard (conference badges), read name/company/email directly | P-1 | 2, if cheap 🔒 D4 |
 | FR-3 | Badge/business-card photo → vision model extracts name, role, company | P-1 | 2 PM 🔒 D4 |
-| FR-4 | Record voice note ≤ 60 s in the browser; upload to backend | P-2 | 2 AM |
+| FR-4 | Record voice note ≤ 60 s in the browser; send it to speech-to-text (no audio file is saved) | P-2 | 2 AM |
 | FR-5 | Transcribe audio (German + English) 🔒 D7 | P-2 | 2 AM |
 | FR-6 | LLM call 1: transcript → structured summary JSON; missing fields = empty | P-2 | 2 AM |
 | FR-7 | LLM call 2: summary + user's Notion projects → best project or "none" + one-line reason quoting the conversation + follow-up draft | P-3 | 2 AM/PM |
 | FR-8 | Review screen: every field editable before save | P-2 | 2 |
 | FR-9 | ⚠️ Phase 1: on scan, insert the `contacts` row in Supabase; on confirm, update it to `status = 'saved'` with the edited fields and assigned project. (Writing to Notion moves to Phase 2.) | P-4 | 2 |
-| FR-10 | On AI/Notion failure or timeout: clear message, fields retained (the browser still holds the audio and re-sends it on retry), one-tap retry | P-5 | 2 PM–3 |
+| FR-10 | On AI/Notion failure or timeout: clear message, fields and transcript retained, one-tap retry (if speech-to-text itself failed, the user records again) | P-5 | 2 PM–3 |
 | FR-11 | Today list shows all contacts of the day with status | — | 2 PM |
 
 **M3 midday slice (what must work by Sat midday):** FR-1 → FR-4 → FR-5 → FR-6 shown on screen. FR-7/FR-9 same afternoon. 🔒 D5 (slice definition confirmed with mentor)
@@ -156,7 +156,7 @@ GET  /api/contacts?day=today  —                              → list
 ```
 
 - Single process, synchronous pipeline (no queue at hackathon scale).
-- Notion: one integration token, projects list cached in memory (refresh on demand). ⚠️ Phase 1: Supabase (Postgres + Storage for voice memos, RLS per user) instead; projects are read from the `projects` table. Notion sync design for Phase 2: [docs/DATA_MODEL.md §5](docs/DATA_MODEL.md).
+- Notion: one integration token, projects list cached in memory (refresh on demand). ⚠️ Phase 1: Supabase (Postgres + RLS per user; voice is speech-to-text only) instead; projects are read from the `projects` table. Notion sync design for Phase 2: [docs/DATA_MODEL.md §5](docs/DATA_MODEL.md).
 - Stack: 🔒 D1 · Hosting with HTTPS (mic/camera need it): 🔒 D9
 
 ## 11. Risks

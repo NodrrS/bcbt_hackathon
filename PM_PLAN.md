@@ -160,7 +160,7 @@ Rules: ask about their last week, not your idea · past behaviour is fact, futur
 | Item | Decision |
 |---|---|
 | Team type | `TBD` — No dev / 1–2 devs / Automation / Voice |
-| Stack | **Supabase** (Postgres, Storage for voice memos, Auth/RLS) — decided 23 Oct. Frontend framework + AI endpoint host: `TBD` (PRD D1) |
+| Stack | **Supabase** (Postgres, Auth/RLS, Edge Functions; voice is speech-to-text only) — decided 23 Oct. Frontend framework + AI endpoint host: `TBD` (PRD D1) |
 | AI model / provider | `TBD` (key from mentor, Day 1) |
 | AI job | **Summarises** the note (typed or transcribed voice memo), **sorts** the contact to one of the user's projects, **drafts** the follow-up |
 | Data source | Invented events, projects and personas with fake profile URLs ([prototype/data.js](prototype/data.js) → `supabase/seed.sql`); no real personal data |
@@ -259,7 +259,7 @@ User does ──▶ [input] ──▶ AI does <job> ──▶ [output on one scr
 | 23 Oct | Name: **Syncy** (product + team) | Team | Used in pitch, prototype, slides |
 | 23 Oct | **Phase 1 = Supabase** (events, projects, contacts); event picker, typed or voice notes, manual project pick, contacts dashboard. **Notion / notes-app sync = Phase 2** | Nodir (PM) | Supersedes "Notion only" below; schema in supabase/migrations, plan in IMPLEMENTATION_PLAN.md |
 | 23 Oct | No LinkedIn scraping — store profile URL only; Notion only (Drive later); fake personas for demo | Team | Avoids ToS / personal-data risk |
-| 24 Oct | **Audio is never stored** — a voice memo goes to the processing endpoint for transcription only and is discarded; the blob stays in the browser until processing succeeds | Nodir (PM) | No Storage bucket, no `audio_path`; simpler backend + privacy point for the pitch; schema and docs updated |
+| 24 Oct | **Voice is speech-to-text only** — a voice memo is transcribed and only the text is kept; no audio file is saved anywhere | Nodir (PM) | Simpler backend + privacy point for the pitch; schema and docs updated |
 
 ## 10. Help
 

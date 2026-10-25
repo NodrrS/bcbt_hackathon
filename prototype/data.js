@@ -31,7 +31,7 @@
     return {
       id: null, event_id: null, project_id: null,
       source: 'qr_linkedin', profile_url: '', profile_slug: null, name: null, role: null, company: null, scanned_at: null,
-      note_kind: null, note_text: null, // audio is never stored: voice is transcribe-only
+      note_kind: null, note_text: null, // voice is speech-to-text only: note_text holds the transcript
       summary: null, discussed: [], needs: null, match_reason: null, match_confidence: null, project_set_by: null,
       next_step: null, next_step_date: null, follow_up_draft: null,
       status: 'captured', stage: 'to_follow_up', user_notes: null,

@@ -69,14 +69,14 @@ Three steps, one screen each:
 |---|---|---|
 | AI model (transcription + 2 short calls) | ~€0.01 per contact | < €5 at hackathon scale |
 | Hosting | free tier | €0 |
-| Supabase (database, voice-memo storage, auth) | free tier | €0 |
+| Supabase (database, auth, processing) | free tier | €0 |
 | **Total** | | **< €5 / month** (update from PM_PLAN §7 cost log) |
 
 Visual: [docs/diagrams/architecture-phase1.svg](docs/diagrams/architecture-phase1.svg) — one picture answers "what does it run on".
 
 Dependencies and risks:
 - **AI model provider:** prices and API keys; we could switch to an open model (Ollama) if needed
-- **Supabase:** database, storage and auth in one service; free tier covers the hackathon
+- **Supabase:** database, auth and serverless functions in one service; free tier covers the hackathon
 - **Notion / notes apps:** Phase 2 integration (projects in, contacts out), not a dependency of the MVP
 - **LinkedIn / Xing:** we only read the URL inside the QR code, no scraping, so changes to their terms don't break us
 - **Personal data:** notes about other people are stored per user with row-level security (each user sees only their own rows); the demo uses invented people only
@@ -97,7 +97,7 @@ Visual: [docs/diagrams/architecture-phase2.svg](docs/diagrams/architecture-phase
 |---|---|---|
 | Claude Code | Pitch documents, clickable prototype, plans and diagrams | Nodir |
 | `add: AI model per D2 (mentor key)` | Transcription, summary, project match, follow-up draft | Utkarsh |
-| Supabase | Database, voice-memo storage, auth (RLS), processing | Utkarsh |
+| Supabase | Database, auth (RLS), processing (speech-to-text + LLM) | Utkarsh |
 | html5-qrcode (JS library) | Camera QR scanning in the browser | Nodir |
 | `add: HTTPS hosting per D9` | Serving the phone app + dashboard | Utkarsh |
 | `add: Gamma, if used` | Slide drafts | Sadaf |

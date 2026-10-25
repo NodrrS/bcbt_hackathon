@@ -74,8 +74,8 @@ create table contacts (
   scanned_at       timestamptz not null default now(),
 
   -- 2. Note (typed or voice)
-  -- Audio is never stored: a voice memo is sent to the processing endpoint,
-  -- transcribed, and discarded; only the transcript lands in note_text.
+  -- Voice is speech-to-text only: the processing endpoint transcribes a voice
+  -- memo and the transcript lands in note_text.
   note_kind        note_kind,
   note_text        text,                -- the typed note, or the transcript of the voice memo
 

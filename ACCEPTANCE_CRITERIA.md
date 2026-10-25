@@ -142,7 +142,7 @@ Mapped to the judging weights:
 - Given a captured contact
 - When the user writes a note, or records a voice memo of up to 60 s, and taps Process
 - Then within 15 s the review screen shows: name, role, company, summary, what was discussed (≤ 3), what they need, next step + date, follow-up draft
-- And a voice memo is transcribed into `note_text` — **the audio itself is never stored**, it exists only in the browser and in the transcription call
+- And a voice memo goes through speech-to-text into `note_text` — **only the text is kept; no audio file is saved anywhere**
 - And fields the AI cannot fill are left empty, not invented
 - And "Later" keeps the contact on the list with a "Needs a note" badge
 
@@ -158,7 +158,7 @@ Mapped to the judging weights:
 - And nothing is sent to the contact automatically
 
 **P-7 Error handling**
-- Given the AI call fails or times out, when the user processes a note, then a clear message and Retry are shown, the row gets `status='error'`, and the note and recording are kept.
+- Given the AI call fails or times out, when the user processes a note, then a clear message and Retry are shown, the row gets `status='error'`, and the note (and the transcript, once speech-to-text succeeded) is kept; if speech-to-text itself failed, the user records again.
 
 **P-8 Dashboard**
 - Given saved and captured contacts from several events

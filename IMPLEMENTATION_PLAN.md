@@ -10,7 +10,7 @@
 | Who | Owns | Judging weight covered |
 |---|---|---|
 | **Nodir** | PM · **frontend** (phone app screens on supabase-js) · **demo video** | 30% works live (with Utkarsh) · 15% demo |
-| **Utkarsh** | **Backend, end to end**: Supabase project, migration, storage, AI processing endpoint, HTTPS deploy | 30% works live |
+| **Utkarsh** | **Backend, end to end**: Supabase project, migration, AI processing endpoint (speech-to-text + LLM), HTTPS deploy | 30% works live |
 | **Sadaf** | Economics, pricing, competition, market · **slides lead** | 20% who pays · 15% cost (with Bhuvanesh) |
 | **Anastasiya** | User research, ICP, positioning, GTM, demo script · slides with Sadaf | 20% real problem/user · 15% demo |
 | **Bhuvanesh** | **Floater**: build support (seed data, dashboard wiring) + business support (cost log, BI numbers) | 15% cost & dependencies |
@@ -41,7 +41,7 @@
 | 2 | **Event home** | See people scanned here, "Needs a note" badges, open / add / edit the event link, Leave | `contacts` where event_id; `events.url` | supabase-js | Nodir | P-1 |
 | 3 | **Scan** | Point camera at a QR | `contacts` insert: source, profile_url, profile_slug, name (from slug), event_id, scanned_at, `status='captured'`; same person + event = existing row (unique index) | Camera QR library (D3) + `parseProfile()` from data.js; supabase-js insert | Nodir | P-2 |
 | 4 | **Project pick** (note screen, optional) | Tap a project, "Let AI suggest" or "No project" | `contacts`: project_id, `project_set_by='user'`, match_reason | supabase-js update | Nodir | P-3 |
-| 5 | **Note** | Write a note **or** record a voice memo; "Later" skips | `contacts`: note_kind, note_text (typed). A voice memo is **never stored**: the blob stays in browser memory and is sent with the processing request (step 6) for transcription only | supabase-js update; audio travels only in the process call | Nodir | P-4 |
+| 5 | **Note** | Write a note **or** record a voice memo; "Later" skips | `contacts`: note_kind, note_text (typed). A voice memo is **speech-to-text only**: the recording goes straight into the processing request (step 6) and only the transcript is kept | supabase-js update; audio travels only in the process call | Nodir | P-4 |
 | 6 | **Processing** | Wait ≤ 15 s | `status='processing'` → AI fields → `status='review'`; failure → `status='error'`, note kept | `POST /api/contacts/:id/process` (server, key never in the browser) | Utkarsh | P-5, P-7 |
 | 7 | **Review** | Edit any field, change the project, Save | name, role, company, summary, discussed[≤3], needs, project_id, project_set_by, match_reason, next_step, next_step_date, follow_up_draft, `status='saved'` | supabase-js update | Nodir | P-6 |
 | 8 | **Projects tab** | See projects, add one (name + description) | `projects`: name, description, emoji | supabase-js select / insert | Nodir | P-5 |
@@ -51,10 +51,10 @@
 ### The processing endpoint (step 6)
 `POST /api/contacts/:id/process`, runs server-side (stack per D1; a Supabase Edge Function also works — identical contract, see [docs/BACKEND_BRIEF.md](docs/BACKEND_BRIEF.md)):
 1. Read the contact row; set `status='processing'`.
-2. If `note_kind='voice'`: the request body carries the audio blob (multipart) → speech-to-text (D7) in memory → store the transcript in `note_text`. **The audio is discarded, never written to Storage or disk.**
+2. If `note_kind='voice'`: the request body carries the recording (multipart) → speech-to-text (D7) → store the transcript in `note_text`. **Only the text is kept — no audio file is saved anywhere.**
 3. **LLM call 1:** note_text + name-from-slug + event name → `{name?, role?, company?, summary, discussed[≤3], needs, next_step, next_step_date?}`. Unknown = empty, never invented.
 4. **LLM call 2:** call-1 JSON + the user's `projects` (name + description, `archived=false`) → `{project_id | null, match_reason (quotes the note), match_confidence, follow_up_draft}`. **If `project_set_by='user'`, keep the user's project** and only draft the follow-up.
-5. Write the fields, set `status='review'`, return the row. On any failure: `status='error'`, the note stays (transcript too, if STT already succeeded); the client keeps the voice blob in memory and re-sends it on Retry.
+5. Write the fields, set `status='review'`, return the row. On any failure: `status='error'`, the note stays (the transcript too, once STT succeeded), so Retry runs from the text; if STT itself failed, the user records again.
 
 ### Swapping the prototype for the real backend
 The prototype already uses the schema's table and column names. Replace the four `db.*` functions in `prototype/data.js` with supabase-js (mapping in [docs/DATA_MODEL.md §3](docs/DATA_MODEL.md)) and replace `simulateAI()` with a call to the endpoint above. Screens stay as they are.
@@ -81,7 +81,7 @@ The prototype already uses the schema's table and column names. Replace the four
 - [ ] Measure seconds + tokens per step; hand € per contact to Sadaf (brief step 10)
 
 ### Sun
-- [ ] Failures set `status='error'`, note/transcript kept, Retry works (client re-sends the audio) (P-7)
+- [ ] Failures set `status='error'`, note/transcript kept, Retry works from the saved text (STT failed → record again) (P-7)
 - [ ] 3 clean runs in a row on demo data (AC-4.1); after freeze, fixes only (AC-4.3)
 - [ ] Repo history clean of secrets (AC-6.6)
 - [ ] Stretch, only if the slice is green: projects **import** (paste a list / upload a file → rows in `projects`) — the no-API fallback for Apple Notes etc.
@@ -94,7 +94,7 @@ The prototype already uses the schema's table and column names. Replace the four
 ### Sat (don't wait for the backend — prototype's localStorage layer keeps working)
 - [ ] **Today's top priority:** real camera QR scan (html5-qrcode, D3) + `parseProfile()` on the scan screen
 - [ ] Align with Utkarsh on a smooth run over the data schema — statuses, column names, endpoint contract ([docs/DATA_MODEL.md §6](docs/DATA_MODEL.md) layer table) — before wiring Processing
-- [ ] Voice memo via MediaRecorder (⚠️ Safari records `audio/mp4`, Chrome `webm` — send the blob with its actual mimeType). **No upload to Storage**: keep the blob in memory and send it with the process call; drop it once `status='review'`
+- [ ] Voice memo via MediaRecorder (⚠️ Safari records `audio/mp4`, Chrome `webm` — send the recording with its actual mimeType). Send the recording straight into the process call for speech-to-text; nothing is uploaded or saved, and the client drops it right after sending
 - [ ] When keys arrive: swap the four `data.js` functions → supabase-js (brief step 4); sign in demo user on load; screens unchanged
 - [ ] Wire Processing → the endpoint, poll the row every 2 s until `status != 'processing'`; Review fully editable; Save → `status='saved'` (P-6)
 - [ ] Evening: full flow on the demo phone, end to end

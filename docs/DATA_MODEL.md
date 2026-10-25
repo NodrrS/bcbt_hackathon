@@ -12,7 +12,7 @@ Today: choose event (edit its details if needed) ─or─ create event ──▶
 Scan QR ──▶ row INSERTED at once (status = captured): profile_url, profile_slug, name-from-slug, event_id
    │
    ▼
-Note: ✍️ type it  ─or─  🎙️ voice memo (audio sent for transcription only → note_text; never stored)   [Skip = note later]
+Note: ✍️ type it  ─or─  🎙️ voice memo (speech-to-text → note_text)   [Skip = note later]
    │
    ▼
 Processing (status = processing): LLM summarises note_text, compares with the user's projects table,
@@ -29,7 +29,7 @@ Dashboard: filter, sort, edit everything later (stage, project, next step, notes
 |---|---|
 | Scan | `source`, `profile_url`, `profile_slug`, `name`, `event_id`, `scanned_at`, `status='captured'` |
 | Project pick (optional, right after scan) | `project_id`, `project_set_by='user'`, `match_reason`; processing then keeps this project instead of the AI's suggestion |
-| Note | `note_kind`, `note_text` (typed note now; voice transcript lands during processing — **audio itself is never stored**) |
+| Note | `note_kind`, `note_text` (typed note now; voice is speech-to-text, the transcript lands during processing) |
 | Processing | `status='processing'` → AI fields: `summary`, `discussed[≤3]`, `needs`, `project_id`, `match_reason`, `match_confidence`, `project_set_by='ai'`, `next_step`, `next_step_date`, `follow_up_draft`, then `status='review'` |
 | Review / Save | any edited field; changing the project sets `project_set_by='user'`; `status='saved'` |
 | Dashboard | `stage`, `user_notes` and any field above |
@@ -62,7 +62,7 @@ Dashboard: filter, sort, edit everything later (stage, project, next step, notes
 |---|---|
 | Keys | id, user_id, event_id → events, project_id → projects |
 | Scan | source (`qr_linkedin` · `qr_xing` · `qr_other` · `manual`), profile_url, profile_slug, name, role, company, scanned_at |
-| Note | note_kind (`text` · `voice`), note_text — no audio column: voice is transcribed, never stored |
+| Note | note_kind (`text` · `voice`), note_text — voice is speech-to-text: only the transcript is kept |
 | AI output | summary, discussed text[≤3], needs, match_reason, match_confidence (`high` · `medium` · `low`), project_set_by (`ai` · `user`), next_step, next_step_date, follow_up_draft |
 | Management | status (`captured` · `processing` · `review` · `saved` · `error`), stage (`to_follow_up` · `followed_up` · `meeting_set` · `won` · `not_relevant`), user_notes |
 | Phase 2 | external_id, external_synced_at |
@@ -72,7 +72,7 @@ Two different "states", on purpose:
 - **status** = where the row is in the capture pipeline (the phone app cares).
 - **stage** = where the relationship is (the dashboard cares).
 
-Rules in the schema: one row per person per event (`unique (user_id, event_id, profile_url)`), `discussed` max 3 items, RLS so every user only sees their own rows. **No audio storage** (decided 24 Oct): a voice memo goes straight to the processing endpoint, is transcribed, and is discarded — only the transcript persists, in `note_text`.
+Rules in the schema: one row per person per event (`unique (user_id, event_id, profile_url)`), `discussed` max 3 items, RLS so every user only sees their own rows. **Voice is speech-to-text only** (decided 24 Oct): a voice memo goes straight to the processing endpoint for transcription; only the transcript is kept, in `note_text`.
 
 ## 3. Frontend mirror
 
@@ -139,7 +139,7 @@ Same tables, same snake_case column names at every layer (`data.js` mirrors the 
 | **Events** | Event picker creates / edits / selects via supabase-js | `events` table; RLS per `user_id` | — |
 | **Projects** | Projects tab lists + adds (name, description, emoji) | `projects` table; the AI matches on `description`; `archived=true` hides from matching | Phase 2: pulled from Notion via `external_source` / `external_id` / `external_updated_at` (§5.1); no-API apps via import/export (§5.4) |
 | **Contact capture** | Scan screen: QR → `parseProfile()` → insert with `status='captured'` (`source`, `profile_url`, `profile_slug`, `name`, `event_id`, `scanned_at`) | `unique (user_id, event_id, profile_url)` dedupes re-scans; RLS | QR carries only the public LinkedIn/Xing profile URL — **no scraping** (PM_PLAN §9) |
-| **Note** | Typed note → `note_text`; voice memo (MediaRecorder) stays **in memory** and is sent with the processing request | `note_kind`, `note_text` on `contacts`; voice `note_text` is filled by transcription | **Audio is never stored** — transcribed and discarded (privacy win for the pitch); client keeps the blob until processing succeeds, for Retry |
+| **Note** | Typed note → `note_text`; voice memo (MediaRecorder) is sent with the processing request for speech-to-text | `note_kind`, `note_text` on `contacts`; voice `note_text` is filled by transcription | **Speech-to-text only** — no audio file is saved, only the transcript (privacy win for the pitch); if STT fails, the user records again |
 | **Processing** | Sets `status='processing'`, calls the endpoint, polls the row every 2 s until status changes | `POST /api/contacts/:id/process`: STT (voice) → LLM call 1 (extract) → read `projects` → LLM call 2 (match + draft) → writes AI fields, `status='review'` or `'error'` | AI + STT keys live **server-side only**; ~€0.01 per contact; prompts in `/prompts` |
 | **Review / Save** | Review screen edits any field; changing project sets `project_set_by='user'`; Save → `status='saved'` | Plain supabase-js update; endpoint respects `project_set_by='user'` on re-runs | Phase 2: `status='saved'` triggers push to Notion (`external_id`, `external_synced_at`, §5.2) |
 | **Dashboard** | Filter / sort / edit everything incl. `stage`, `user_notes` | Same `contacts` table — no extra backend | `status` = capture pipeline (phone cares) · `stage` = relationship (dashboard cares) |

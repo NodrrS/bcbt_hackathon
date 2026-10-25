@@ -42,7 +42,7 @@ flowchart LR
   end
   ai["AI provider (D2)<br/>STT + LLM call 1 + LLM call 2"]
   app -- "insert on scan (status=captured)" --> pg
-  app -- "invoke with contact_id<br/>+ audio blob (voice, never stored)" --> fn
+  app -- "invoke with contact_id<br/>+ recording (voice → speech-to-text)" --> fn
   dash -- "select / update" --> pg
   fn -- "transcribe + summarize + match" --> ai
   fn -- "AI fields, status=review" --> pg
@@ -51,12 +51,12 @@ flowchart LR
 **Request flow (maps to the statuses in the schema):**
 
 1. **Scan** → client inserts the `contacts` row immediately: `source`, `profile_url`, `profile_slug`, name-from-slug, `event_id` → `status='captured'`. No external call; < 3 s (P-1).
-2. **Note** → typed text goes straight into `note_text`; a voice memo stays **in browser memory** and is sent in the `process-note` request body (multipart) — **audio is never stored**.
-3. **process-note Edge Function** (`status='processing'`): STT on the request's audio (discarded after) → `note_text`; LLM call 1 → summary JSON; reads the user's `projects`; LLM call 2 → `project_id` suggestion + `match_reason` + `match_confidence` + `follow_up_draft`; writes everything back → `status='review'`. If the user picked a project at scan time (`project_set_by='user'`), the AI's suggestion does not overwrite it. Budget ≤ 15 s (P-2).
+2. **Note** → typed text goes straight into `note_text`; a voice memo is sent in the `process-note` request body (multipart) for **speech-to-text only** — no audio file is saved.
+3. **process-note Edge Function** (`status='processing'`): STT on the request's recording → `note_text`; LLM call 1 → summary JSON; reads the user's `projects`; LLM call 2 → `project_id` suggestion + `match_reason` + `match_confidence` + `follow_up_draft`; writes everything back → `status='review'`. If the user picked a project at scan time (`project_set_by='user'`), the AI's suggestion does not overwrite it. Budget ≤ 15 s (P-2).
 4. **Review** → user edits any field, assigns/changes project → `status='saved'`.
 5. **Dashboard** → reads/updates the same rows: `stage`, `user_notes`, next steps. Pipeline `status` and relationship `stage` are deliberately separate columns.
 
-**Security/cost:** AI + service keys live only in Edge Function env vars (AC-2.2, P-6); the browser holds the anon key + RLS. Marginal cost ≈ €0.01–0.02 per contact (20 s STT + 2 short LLM calls). Failure at any step → `status='error'`, fields retained, one-tap retry re-sends the blob the client still holds (P-5/FR-10). **Privacy:** audio exists only in the browser and in the transcription call — nothing recorded is ever persisted.
+**Security/cost:** AI + service keys live only in Edge Function env vars (AC-2.2, P-6); the browser holds the anon key + RLS. Marginal cost ≈ €0.01–0.02 per contact (20 s STT + 2 short LLM calls). Failure at any step → `status='error'`, fields retained, one-tap retry runs from the saved text; if STT itself failed, the user records again (P-5/FR-10). **Privacy:** voice is speech-to-text only — no audio file is ever saved, only the transcript.
 
 ## 3. Phase 2 — Notion and notes-app sync
 
