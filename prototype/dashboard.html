@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f3efe9">
+<meta name="theme-color" content="#fffdf9">
 <title>Syncy contacts</title>
 <!--
   Contacts dashboard. Reads and writes the same rows as the phone app through data.js,
@@ -11,7 +11,7 @@
 -->
 <style>
 :root {
-  --bg: #f3efe9;
+  --bg: #fffdf9;
   --panel: #fffdf9;
   --ink: #1f1b17;
   --muted: #71695f;
@@ -63,6 +63,10 @@ a { touch-action: manipulation; }
 .head p { margin: 4px 0 0; color: var(--muted); }
 .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 12px; font-weight: 600; background: var(--grey-soft); text-decoration: none; color: var(--ink); }
 .btn-primary { background: linear-gradient(135deg, var(--accent), #ef7d33); color: #fff; box-shadow: 0 6px 16px rgba(228, 96, 42, .28); }
+.icon-btn { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--grey-soft); flex: none; }
+.set-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 11px 2px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.set-row span { color: var(--muted); flex: none; }
+.set-row b { font-weight: 600; text-align: right; }
 
 /* ---------- glossy UI ---------- */
 .btn-primary { position: relative; overflow: hidden; }
@@ -96,9 +100,28 @@ a { touch-action: manipulation; }
 .search { flex: 1 1 240px; display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 0 10px; }
 .search input { border: 0; outline: 0; padding: 9px 0; width: 100%; background: transparent; }
 .search:focus-within { outline: 2px solid var(--accent-2); border-color: transparent; }
-select.f { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: #fff; max-width: 210px; }
+select.f { border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; font-size: 13px; background: #fff; max-width: 180px; }
 select.f:focus { outline: 2px solid var(--accent-2); border-color: transparent; }
 select.f.set { border-color: var(--accent); background: var(--accent-soft); }
+
+/* capture status as a progress line, sources as an icon line */
+.stepper, .srcline { display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; flex: none; }
+.stepper .step, .srcline button { display: inline-flex; align-items: center; gap: 5px; padding: 0 2px; font-size: 12px; font-weight: 600; color: var(--muted); transition: transform 160ms var(--ease-out); }
+.stepper .step:active, .srcline button:active { transform: scale(.94); }
+.stepper .sdot { width: 8px; height: 8px; border-radius: 50%; background: #ddd3c6; flex: none; transition: background .15s, box-shadow .15s; }
+.stepper .step.done .sdot, .stepper .step.on .sdot { background: linear-gradient(180deg, var(--accent-2), var(--accent)); }
+.stepper .step.on { color: var(--accent-ink); }
+.stepper .step.on .sdot { box-shadow: 0 0 0 3px var(--accent-soft); }
+.conn { width: 14px; height: 2px; border-radius: 1px; background: var(--line); margin: 0 5px; flex: none; }
+.conn.done { background: linear-gradient(90deg, var(--accent-2), var(--accent)); }
+.srcline .src { width: 20px; height: 20px; border-radius: 6px; font-size: 11px; filter: grayscale(1) opacity(.5); transition: filter .15s, box-shadow .15s; }
+.srcline button[aria-pressed="true"] .src { filter: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+.more-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--muted); border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.more-toggle .chev { display: inline-block; transition: transform .2s var(--ease-out); }
+.more-toggle[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.more-toggle.set { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+.morefilters { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; align-items: center; }
+.morefilters[hidden] { display: none; }
 .stages { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; align-items: center; }
 .stages .lbl { font-size: 12.5px; color: var(--muted); margin-right: 2px; }
 .chipbtn { font-size: 12.5px; font-weight: 600; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--muted); }
@@ -197,8 +220,6 @@ select.f.set { border-color: var(--accent); background: var(--accent-soft); }
   .side { display: none; }
   .main { padding: 18px 16px calc(88px + env(safe-area-inset-bottom, 0px)); }
   .head, .head > div { min-width: 0; }
-  .head > div:last-child { width: 100%; }
-  .head > div:last-child > * { min-height: 44px; }
   .stats > *, .stat { min-width: 0; }
   .stat .lbl, .bar > span:first-child { overflow-wrap: anywhere; }
   .thead { display: none; }
@@ -209,7 +230,10 @@ select.f.set { border-color: var(--accent); background: var(--accent-soft); }
   .row .stage-cell { grid-column: 2; grid-row: 1; }
   select.f { max-width: 100%; min-width: 0; flex: 1 1 140px; }
   .toolbar { position: static; }
-  .toolbar input, .toolbar select, .toolbar button { min-height: 44px; }
+  .toolbar input, .toolbar button { min-height: 44px; }
+  .toolbar select { min-height: 40px; }
+  .stepper, .srcline { height: 44px; flex: 1 1 auto; justify-content: center; }
+  .stepper .step, .srcline button { min-height: 0; }
   .toolbar input, .toolbar select, .drawer input, .drawer select, .drawer textarea { font-size: 16px; }
   .chipbtn { padding: 8px 12px; }
   .clear { min-height: 44px; padding: 8px; }
@@ -219,33 +243,35 @@ select.f.set { border-color: var(--accent); background: var(--accent-soft); }
   .edit { min-width: 0; }
   .dhead .x { width: 44px; height: 44px; }
   .seg button, .copy { min-height: 44px; padding: 10px 12px; }
+  /* Same bar as the app's tabbar in index.html: frosted, 24px icons, active label hides under its icon. */
   .mobile-nav {
     position: fixed; z-index: 10; inset: auto 0 0; display: flex;
-    padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+    padding: 8px 8px max(22px, calc(8px + env(safe-area-inset-bottom)));
     border-top: 1px solid var(--line);
     background: color-mix(in srgb, var(--panel) 80%, transparent);
     backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
   }
   .mobile-nav a {
-    flex: 1; min-width: 0; min-height: 52px; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 2px; padding: 4px 0;
+    flex: 1; min-width: 0; display: flex; flex-direction: column;
+    align-items: center; gap: 2px; padding: 4px 0;
     color: var(--muted); text-decoration: none; font-size: 11px; line-height: 1.2;
-    transition: transform 140ms var(--ease-out);
+    transition: transform 160ms var(--ease-out);
   }
   .mobile-nav a:active { transform: scale(.92); }
   .mobile-nav a[aria-current="page"] { color: var(--accent); font-weight: 600; }
   .mobile-nav svg { width: 24px; height: 24px; }
   .mobile-nav a svg { filter: grayscale(1) opacity(.45); transition: filter .15s; }
   .mobile-nav a[aria-current="page"] svg { filter: drop-shadow(0 2px 3px rgba(228, 96, 42, .25)); }
+  .mobile-nav .tlbl { transition: opacity .25s var(--ease-out), transform .25s var(--ease-out); }
+  .mobile-nav a[aria-current="page"] .tlbl { opacity: 0; transform: translateY(8px); }
 }
 @media (max-width: 360px) {
   .main { padding-right: 12px; padding-left: 12px; }
   .two, .half { grid-template-columns: 1fr; }
-  .mobile-nav a { font-size: 10.5px; }
 }
 /* ---------- press feedback ---------- */
-.btn, .nav, .chipbtn, .seg button, .dhead .x { transition: transform 140ms var(--ease-out); }
-.btn:active:not(:disabled), .nav:active, .chipbtn:active, .seg button:active { transform: scale(.97); }
+.btn, .nav, .chipbtn, .seg button, .dhead .x, .icon-btn, .more-toggle { transition: transform 140ms var(--ease-out); }
+.btn:active:not(:disabled), .nav:active, .chipbtn:active, .seg button:active, .icon-btn:active, .more-toggle:active { transform: scale(.97); }
 .dhead .x:active { transform: scale(.94); }
 button.stat:active { transform: scale(.97) rotate(-1.6deg); }
 button.stat:nth-child(even):active { transform: scale(.97) rotate(1.6deg); }
@@ -254,7 +280,8 @@ button.stat:nth-child(even):active { transform: scale(.97) rotate(1.6deg); }
 @keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-1.2deg); } 55% { transform: rotate(1.2deg); } 80% { transform: rotate(-.5deg); } }
 @media (hover: hover) and (pointer: fine) {
   .btn:hover:not(:disabled), .nav:hover, .chipbtn:hover, .seg button:hover, button.stat:hover,
-  .copy:hover, .clear:hover, .dhead .x:hover, .mobile-nav a:hover { animation: wiggle .4s var(--ease-out); }
+  .copy:hover, .clear:hover, .dhead .x:hover, .mobile-nav a:hover, .icon-btn:hover, .more-toggle:hover,
+  .stepper .step:hover, .srcline button:hover { animation: wiggle .4s var(--ease-out); }
 }
 
 /* ---------- toasts (Sonner-style: transitions, not keyframes) ---------- */
@@ -298,7 +325,7 @@ button.stat:nth-child(even):active { transform: scale(.97) rotate(1.6deg); }
         <h1 id="pageTitle">Welcome back 👋</h1>
         <p id="subline"></p>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn btn-primary" href="index.html">＋ Scan a new contact</a><button class="btn" onclick="signOut()">Sign out</button></div>
+      <button class="icon-btn" type="button" aria-label="Settings" title="Settings" onclick="openSettings()" style="align-self:flex-start"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.01A1.7 1.7 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.01c.26.63.87 1.04 1.56 1.04H21a2 2 0 1 1 0 4h-.09c-.69 0-1.3.41-1.51 1.03Z"/></svg></button>
     </div>
 
     <section class="stats" id="stats" aria-label="Summary"></section>
@@ -314,26 +341,19 @@ button.stat:nth-child(even):active { transform: scale(.97) rotate(1.6deg); }
         <option value="later">Due later</option>
         <option value="none">No date</option>
       </select>
-      <select class="f" id="fStatus" aria-label="Filter by capture status">
-        <option value="all">Any capture status</option>
-        <option value="saved">Saved</option>
-        <option value="captured">Needs a note</option>
-        <option value="review">Waiting for review</option>
-      </select>
-      <select class="f" id="fSource" aria-label="Filter by source">
-        <option value="all">All sources</option>
-        <option value="qr_linkedin">LinkedIn</option>
-        <option value="qr_xing">Xing</option>
-        <option value="qr_other">Other link</option>
-      </select>
-      <select class="f" id="sortSel" aria-label="Sort">
-        <option value="due">Sort: next follow-up</option>
-        <option value="met">Sort: recently met</option>
-        <option value="name">Sort: name A–Z</option>
-        <option value="project">Sort: project</option>
-        <option value="stage">Sort: stage</option>
-      </select>
-      <div class="stages" id="stageChips"></div>
+      <button type="button" class="more-toggle" id="moreBtn" aria-expanded="false" aria-controls="moreFilters" onclick="toggleMore()">More <span class="chev" aria-hidden="true">▾</span></button>
+      <div class="morefilters" id="moreFilters" hidden>
+        <div class="stepper" id="fStatus" role="group" aria-label="Filter by capture status"></div>
+        <div class="srcline" id="fSource" role="group" aria-label="Filter by source"></div>
+        <select class="f" id="sortSel" aria-label="Sort">
+          <option value="due">Sort: next follow-up</option>
+          <option value="met">Sort: recently met</option>
+          <option value="name">Sort: name A–Z</option>
+          <option value="project">Sort: project</option>
+          <option value="stage">Sort: stage</option>
+        </select>
+        <div class="stages" id="stageChips"></div>
+      </div>
     </div>
 
     <div class="resultline"><span id="resultCount"></span><button class="clear" id="clearBtn" onclick="clearFilters()">Clear filters</button></div>
@@ -344,10 +364,10 @@ button.stat:nth-child(even):active { transform: scale(.97) rotate(1.6deg); }
     </div>
   </main>
   <nav class="mobile-nav" aria-label="Main navigation">
-    <a href="index.html" aria-label="Today"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gi-sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd36b"/><stop offset="1" stop-color="#f08c18"/></linearGradient></defs><g fill="none" stroke="#f3a33f" stroke-width="2" stroke-linecap="round"><path d="M12 2.2v2M12 19.8v2M2.2 12h2M19.8 12h2M4.8 4.8l1.4 1.4M17.8 17.8l1.4 1.4M4.8 19.2l1.4-1.4M17.8 6.2l1.4-1.4"/></g><circle cx="12" cy="12" r="5.2" fill="url(#gi-sun)"/><ellipse cx="10.3" cy="9.9" rx="2.6" ry="1.7" fill="#fff" opacity=".55"/></svg>Today</a>
-    <a href="index.html?tab=contacts" aria-label="Contacts"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gi-p1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fc7ff"/><stop offset="1" stop-color="#2f6db5"/></linearGradient><linearGradient id="gi-p2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fe0a8"/><stop offset="1" stop-color="#2c8a57"/></linearGradient></defs><g fill="url(#gi-p2)"><circle cx="16.6" cy="8.1" r="2.9"/><path d="M11.6 20c.6-3.4 2.6-5.2 5-5.2s4.4 1.8 5 5.2z"/></g><g fill="url(#gi-p1)"><circle cx="8.4" cy="7.4" r="3.6"/><path d="M2.2 20c.7-4 3.2-6.1 6.2-6.1s5.5 2.1 6.2 6.1z"/></g><ellipse cx="7.3" cy="5.9" rx="1.7" ry="1.1" fill="#fff" opacity=".55"/><ellipse cx="15.8" cy="6.9" rx="1.3" ry=".9" fill="#fff" opacity=".5"/></svg>Contacts</a>
-    <a href="index.html?tab=projects" aria-label="Projects"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gi-fo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c3a6ff"/><stop offset="1" stop-color="#7a4bc0"/></linearGradient></defs><path d="M3 6.5c0-1.1.9-2 2-2h4.2l2 2.3H19c1.1 0 2 .9 2 2V17c0 1.7-1.3 3-3 3H6c-1.7 0-3-1.3-3-3z" fill="url(#gi-fo)"/><path d="M3 8.8h18v1.6H3z" fill="#fff" opacity=".25"/><ellipse cx="8" cy="7.2" rx="3.2" ry="1.1" fill="#fff" opacity=".4"/></svg>Projects</a>
-    <a href="dashboard.html" aria-current="page" aria-label="Dashboard"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gi-d1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb470"/><stop offset="1" stop-color="#e4602a"/></linearGradient><linearGradient id="gi-d2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fc7ff"/><stop offset="1" stop-color="#2f6db5"/></linearGradient><linearGradient id="gi-d3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fe0a8"/><stop offset="1" stop-color="#2c8a57"/></linearGradient><linearGradient id="gi-d4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c3a6ff"/><stop offset="1" stop-color="#7a4bc0"/></linearGradient></defs><rect x="3" y="3" width="8.4" height="8.4" rx="2.4" fill="url(#gi-d1)"/><rect x="12.6" y="3" width="8.4" height="8.4" rx="2.4" fill="url(#gi-d2)"/><rect x="3" y="12.6" width="8.4" height="8.4" rx="2.4" fill="url(#gi-d3)"/><rect x="12.6" y="12.6" width="8.4" height="8.4" rx="2.4" fill="url(#gi-d4)"/><ellipse cx="7.2" cy="5.3" rx="3" ry="1.2" fill="#fff" opacity=".4"/><ellipse cx="16.8" cy="5.3" rx="3" ry="1.2" fill="#fff" opacity=".4"/></svg>Dashboard</a>
+    <a href="index.html" aria-label="Today"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gi-sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd36b"/><stop offset="1" stop-color="#f08c18"/></linearGradient></defs><g fill="none" stroke="#f3a33f" stroke-width="2" stroke-linecap="round"><path d="M12 2.2v2M12 19.8v2M2.2 12h2M19.8 12h2M4.8 4.8l1.4 1.4M17.8 17.8l1.4 1.4M4.8 19.2l1.4-1.4M17.8 6.2l1.4-1.4"/></g><circle cx="12" cy="12" r="5.2" fill="url(#gi-sun)"/><ellipse cx="10.3" cy="9.9" rx="2.6" ry="1.7" fill="#fff" opacity=".55"/></svg><span class="tlbl">Today</span></a>
+    <a href="index.html?tab=contacts" aria-label="Contacts"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gi-p1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fc7ff"/><stop offset="1" stop-color="#2f6db5"/></linearGradient><linearGradient id="gi-p2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fe0a8"/><stop offset="1" stop-color="#2c8a57"/></linearGradient></defs><g fill="url(#gi-p2)"><circle cx="16.6" cy="8.1" r="2.9"/><path d="M11.6 20c.6-3.4 2.6-5.2 5-5.2s4.4 1.8 5 5.2z"/></g><g fill="url(#gi-p1)"><circle cx="8.4" cy="7.4" r="3.6"/><path d="M2.2 20c.7-4 3.2-6.1 6.2-6.1s5.5 2.1 6.2 6.1z"/></g><ellipse cx="7.3" cy="5.9" rx="1.7" ry="1.1" fill="#fff" opacity=".55"/><ellipse cx="15.8" cy="6.9" rx="1.3" ry=".9" fill="#fff" opacity=".5"/></svg><span class="tlbl">Contacts</span></a>
+    <a href="index.html?tab=projects" aria-label="Projects"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gi-fo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c3a6ff"/><stop offset="1" stop-color="#7a4bc0"/></linearGradient></defs><path d="M3 6.5c0-1.1.9-2 2-2h4.2l2 2.3H19c1.1 0 2 .9 2 2V17c0 1.7-1.3 3-3 3H6c-1.7 0-3-1.3-3-3z" fill="url(#gi-fo)"/><path d="M3 8.8h18v1.6H3z" fill="#fff" opacity=".25"/><ellipse cx="8" cy="7.2" rx="3.2" ry="1.1" fill="#fff" opacity=".4"/></svg><span class="tlbl">Projects</span></a>
+    <a href="dashboard.html" aria-current="page" aria-label="Dashboard"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gi-d1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb470"/><stop offset="1" stop-color="#e4602a"/></linearGradient><linearGradient id="gi-d2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fc7ff"/><stop offset="1" stop-color="#2f6db5"/></linearGradient><linearGradient id="gi-d3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fe0a8"/><stop offset="1" stop-color="#2c8a57"/></linearGradient><linearGradient id="gi-d4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c3a6ff"/><stop offset="1" stop-color="#7a4bc0"/></linearGradient></defs><rect x="3" y="3" width="8.4" height="8.4" rx="2.4" fill="url(#gi-d1)"/><rect x="12.6" y="3" width="8.4" height="8.4" rx="2.4" fill="url(#gi-d2)"/><rect x="3" y="12.6" width="8.4" height="8.4" rx="2.4" fill="url(#gi-d3)"/><rect x="12.6" y="12.6" width="8.4" height="8.4" rx="2.4" fill="url(#gi-d4)"/><ellipse cx="7.2" cy="5.3" rx="3" ry="1.2" fill="#fff" opacity=".4"/><ellipse cx="16.8" cy="5.3" rx="3" ry="1.2" fill="#fff" opacity=".4"/></svg><span class="tlbl">Dashboard</span></a>
   </nav>
 </div>
 
@@ -366,10 +386,12 @@ const STAGES = [
   { id: 'not_relevant', label: 'Not relevant' },
 ];
 const SOURCE_LABEL = { qr_linkedin: 'LinkedIn', qr_xing: 'Xing', qr_other: 'Profile link', manual: 'Manual' };
+const CAPTURE_STEPS = [['captured', 'Needs a note'], ['review', 'In review'], ['saved', 'Saved']];
+const SRC_OPTS = [['qr_linkedin', 'li', 'in', 'LinkedIn'], ['qr_xing', 'xi', 'X', 'Xing'], ['qr_other', 'ot', '↗', 'Other link']];
 const COLORS = ['#e4602a', '#2c8a57', '#0a66c2', '#7a4bc0', '#c2410c', '#0f766e', '#a8431a', '#2f6db5'];
 
 const state = {
-  q: '', project: 'all', event: 'all', due: 'all', status: 'all', source: 'all',
+  q: '', project: 'all', event: 'all', due: 'all', status: 'all', source: 'all', more: false,
   stages: new Set(STAGES.map(s => s.id)),
   sort: 'due', openId: null, statFilter: null,
   draft: {}, // unsaved edits for the open contact; written to the db only on Save
@@ -480,13 +502,25 @@ function renderFilters() {
   if (![...fe.options].some(o => o.value === state.event)) state.event = 'all';
   fp.value = state.project; fe.value = state.event;
   document.getElementById('fDue').value = state.due;
-  document.getElementById('fStatus').value = state.status;
-  document.getElementById('fSource').value = state.source;
   document.getElementById('sortSel').value = state.sort;
-  ['fProject', 'fEvent', 'fDue', 'fStatus', 'fSource'].forEach(id => {
+  ['fProject', 'fEvent', 'fDue'].forEach(id => {
     const el = document.getElementById(id);
     el.classList.toggle('set', el.value !== 'all');
   });
+  // Capture status drawn as a progress line: dots fill up to the selected step.
+  const stepIdx = CAPTURE_STEPS.findIndex(([id]) => id === state.status);
+  document.getElementById('fStatus').innerHTML = CAPTURE_STEPS.map(([id, label], i) =>
+    `${i ? `<span class="conn ${stepIdx >= 0 && i <= stepIdx ? 'done' : ''}" aria-hidden="true"></span>` : ''}` +
+    `<button type="button" class="step ${i === stepIdx ? 'on' : ''} ${stepIdx >= 0 && i < stepIdx ? 'done' : ''}" aria-pressed="${i === stepIdx}" onclick="setStatus('${id}')"><span class="sdot" aria-hidden="true"></span>${label}</button>`).join('');
+  // Sources as icons on the same kind of line.
+  document.getElementById('fSource').innerHTML = SRC_OPTS.map(([id, cls, glyph, label], i) =>
+    `${i ? '<span class="conn" aria-hidden="true"></span>' : ''}` +
+    `<button type="button" aria-pressed="${state.source === id}" title="${label}" aria-label="${label}" onclick="setSource('${id}')"><span class="src ${cls}">${glyph}</span></button>`).join('');
+  // The extra filters live under "More"; the button shows when a hidden one is active.
+  document.getElementById('moreFilters').hidden = !state.more;
+  const moreBtn = document.getElementById('moreBtn');
+  moreBtn.setAttribute('aria-expanded', String(!!state.more));
+  moreBtn.classList.toggle('set', !state.more && (state.status !== 'all' || state.source !== 'all' || state.stages.size !== STAGES.length));
   document.getElementById('stageChips').innerHTML = `<span class="lbl">Stage:</span>` + STAGES.map(s => {
     const on = state.stages.has(s.id);
     const n = all.filter(c => c.stage === s.id).length;
@@ -670,6 +704,37 @@ function toggleStage(id) {
   renderAll();
 }
 function setSort(key) { state.sort = key; renderAll(); }
+// Clicking the selected step or icon again clears that filter.
+function setStatus(id) { state.status = state.status === id ? 'all' : id; state.statFilter = null; renderAll(); }
+function setSource(id) { state.source = state.source === id ? 'all' : id; state.statFilter = null; renderAll(); }
+function toggleMore() { state.more = !state.more; renderFilters(); }
+
+async function signOut() { if (!db.live) { location.reload(); return; } try { await db.signOut(); } catch (error) { toast(`Could not sign out: ${error.message}`, { type: 'error' }); } }
+function openSettings() {
+  const wrap = document.createElement('div');
+  wrap.className = 'dialog-wrap';
+  wrap.innerHTML = `<div class="dscrim"></div>
+    <div class="dialog" role="dialog" aria-modal="true" aria-label="Settings">
+      <h3>Settings</h3>
+      <div class="set-row"><span>Account</span><b>${db.live ? 'Signed in with Supabase' : 'Demo mode · local data'}</b></div>
+      <div class="set-row"><span>Voice memos</span><b>Transcribed only, audio never stored</b></div>
+      <div class="set-row"><span>Version</span><b>Syncy prototype · phase 1</b></div>
+      <div class="dactions" style="margin-top:18px">
+        ${db.live ? '' : '<button class="btn" data-act="reset">Reset demo data</button>'}
+        <button class="btn" data-act="close">Close</button>
+        <button class="btn btn-danger" data-act="signout">Sign out</button>
+      </div>
+    </div>`;
+  document.body.appendChild(wrap);
+  const done = () => { document.removeEventListener('keydown', onKey, true); wrap.classList.remove('open'); setTimeout(() => wrap.remove(), 200); };
+  const onKey = e => { if (e.key === 'Escape') { e.stopPropagation(); done(); } };
+  document.addEventListener('keydown', onKey, true);
+  wrap.querySelector('.dscrim').addEventListener('click', done);
+  wrap.querySelector('[data-act="close"]').addEventListener('click', done);
+  wrap.querySelector('[data-act="reset"]')?.addEventListener('click', () => { localStorage.clear(); location.reload(); });
+  wrap.querySelector('[data-act="signout"]').addEventListener('click', async () => { done(); await signOut(); });
+  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('open')));
+}
 const discardPrompt = () => confirmDialog({
   title: 'Discard unsaved changes?',
   message: 'Your edits to this contact have not been saved and will be lost.',
@@ -741,8 +806,6 @@ function copyDraft(btn) {
   btn.textContent = 'Copied ✓';
   setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
 }
-async function signOut() { try { await db.signOut(); } catch (error) { toast(`Could not sign out: ${error.message}`, { type: 'error' }); } }
-
 // A Claude-style greeting instead of a static page title.
 (function setGreeting() {
   const h = new Date().getHours();
@@ -751,7 +814,7 @@ async function signOut() { try { await db.signOut(); } catch (error) { toast(`Co
   document.getElementById('pageTitle').textContent = Math.random() < 0.5 ? timed : playful[Math.floor(Math.random() * playful.length)];
 })();
 document.getElementById('q').addEventListener('input', e => { state.q = e.target.value; state.statFilter = null; renderRows(); document.getElementById('clearBtn').style.visibility = isFiltered() ? 'visible' : 'hidden'; });
-[['fProject', 'project'], ['fEvent', 'event'], ['fDue', 'due'], ['fStatus', 'status'], ['fSource', 'source'], ['sortSel', 'sort']].forEach(([id, key]) =>
+[['fProject', 'project'], ['fEvent', 'event'], ['fDue', 'due'], ['sortSel', 'sort']].forEach(([id, key]) =>
   document.getElementById(id).addEventListener('change', e => { state[key] = e.target.value; if (key !== 'sort') state.statFilter = null; renderAll(); }));
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && state.openId) closeDrawer(); });
 // The phone app saved something in another tab.
