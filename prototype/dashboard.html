@@ -247,7 +247,15 @@ select.f.set { border-color: var(--accent); background: var(--accent-soft); }
 .btn, .nav, .chipbtn, .seg button, .dhead .x { transition: transform 140ms var(--ease-out); }
 .btn:active:not(:disabled), .nav:active, .chipbtn:active, .seg button:active { transform: scale(.97); }
 .dhead .x:active { transform: scale(.94); }
-button.stat:active { transform: scale(.98); }
+button.stat:active { transform: scale(.97) rotate(-1.6deg); }
+button.stat:nth-child(even):active { transform: scale(.97) rotate(1.6deg); }
+
+/* ---------- hover wiggle on clickables (hover-capable devices only) ---------- */
+@keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-1.2deg); } 55% { transform: rotate(1.2deg); } 80% { transform: rotate(-.5deg); } }
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover:not(:disabled), .nav:hover, .chipbtn:hover, .seg button:hover, button.stat:hover,
+  .copy:hover, .clear:hover, .dhead .x:hover, .mobile-nav a:hover { animation: wiggle .4s var(--ease-out); }
+}
 
 /* ---------- toasts (Sonner-style: transitions, not keyframes) ---------- */
 .toasts { position: fixed; right: 20px; bottom: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; z-index: 80; pointer-events: none; }
@@ -287,7 +295,7 @@ button.stat:active { transform: scale(.98); }
   <main class="main">
     <div class="head">
       <div>
-        <h1>Contacts</h1>
+        <h1 id="pageTitle">Welcome back 👋</h1>
         <p id="subline"></p>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn btn-primary" href="index.html">＋ Scan a new contact</a><button class="btn" onclick="signOut()">Sign out</button></div>
@@ -735,6 +743,13 @@ function copyDraft(btn) {
 }
 async function signOut() { try { await db.signOut(); } catch (error) { toast(`Could not sign out: ${error.message}`, { type: 'error' }); } }
 
+// A Claude-style greeting instead of a static page title.
+(function setGreeting() {
+  const h = new Date().getHours();
+  const timed = h < 5 ? 'Up late? 🌙' : h < 12 ? 'Good morning ☀️' : h < 18 ? 'Good afternoon 👋' : 'Good evening 🌆';
+  const playful = ['How is it going?', 'Welcome back 👋', 'Nice to see you again', 'Ready to follow up?', 'Who did you meet today?'];
+  document.getElementById('pageTitle').textContent = Math.random() < 0.5 ? timed : playful[Math.floor(Math.random() * playful.length)];
+})();
 document.getElementById('q').addEventListener('input', e => { state.q = e.target.value; state.statFilter = null; renderRows(); document.getElementById('clearBtn').style.visibility = isFiltered() ? 'visible' : 'hidden'; });
 [['fProject', 'project'], ['fEvent', 'event'], ['fDue', 'due'], ['fStatus', 'status'], ['fSource', 'source'], ['sortSel', 'sort']].forEach(([id, key]) =>
   document.getElementById(id).addEventListener('change', e => { state[key] = e.target.value; if (key !== 'sort') state.statFilter = null; renderAll(); }));

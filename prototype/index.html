@@ -308,6 +308,25 @@ ul.bul li { margin: 3px 0; }
 .dropzone.flash { outline: 2px solid var(--accent-2); outline-offset: 3px; }
 details.card > summary { min-height: 44px; display: flex; align-items: center; }
 
+/* ---------- collapsible contact groups ---------- */
+.group-toggle { width: 100%; cursor: pointer; display: flex; align-items: center; gap: 6px; min-height: 44px; text-align: left; }
+.group-toggle .chev { display: inline-block; transition: transform .2s var(--ease-out); }
+.group-toggle[aria-expanded="false"] .chev { transform: rotate(-90deg); }
+
+/* ---------- tab name mirrors into the headline ---------- */
+.tabbar .tlbl { transition: opacity .25s var(--ease-out), transform .25s var(--ease-out); }
+.tabbar button.on .tlbl { opacity: 0; transform: translateY(8px); }
+.title.fly { animation: title-rise .35s var(--ease-out) both; }
+@keyframes title-rise { from { opacity: 0; transform: translateY(16px); } }
+
+/* ---------- hover wiggle on clickables (hover-capable devices only) ---------- */
+@keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-1.4deg); } 55% { transform: rotate(1.4deg); } 80% { transform: rotate(-.6deg); } }
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover:not(:disabled), .chip:hover:not(:disabled), .icon-btn:hover, .proj-action:hover,
+  .tabbar button:hover, .tabbar a:hover, .linkbtn:hover, .copy:hover, .seg button:hover,
+  .pchip:hover, .urlrow button:hover, .group-toggle:hover { animation: wiggle .4s var(--ease-out); }
+}
+
 /* ---------- press feedback: every pressable element responds on pointer-down ---------- */
 .btn, .scan-cta, .icon-btn, .chip, .proj-action, .mic, .seg button, .urlrow button, .tabbar button, .tabbar a { transition: transform 160ms var(--ease-out); }
 .btn:active:not(:disabled), .scan-cta:active, .icon-btn:active, .chip:active:not(:disabled), .proj-action:active, .seg button:active, .urlrow button:active { transform: scale(.97); }
@@ -509,7 +528,7 @@ function srcBadge(source, url) {
 }
 function initials2(name) { return (String(name || '?').replace(/[^\p{L}\p{N}]/gu, '').slice(0, 2) || '?').toUpperCase(); }
 function projTag(p) { return `<span class="ptag" style="background:${color(p.name)}">${esc(initials2(p.name))}</span>`; }
-function projThumb(p) { return `<span class="pthumb" style="background:${color(p.name)}">${esc(initials2(p.name))}</span>`; }
+function projThumb(p) { return p.emoji && p.emoji !== '📌' ? `<span class="pthumb" style="background:#f6f1ea">${esc(p.emoji)}</span>` : `<span class="pthumb" style="background:${color(p.name)}">${esc(initials2(p.name))}</span>`; }
 const SOURCE_LABEL = { qr_linkedin: 'LinkedIn', qr_xing: 'Xing', qr_other: 'Profile', manual: 'Manual' };
 function fmtDate(iso) { return iso ? new Date(iso + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : ''; }
 function addDays(iso, n) { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
@@ -580,6 +599,7 @@ function go(screen, force = false) {
   saveNavigationState();
   clearTimers();
   if (['today', 'contacts', 'projects'].includes(screen)) ui.tab = screen;
+  if (screen !== ui.screen) ui.flyTitle = true;
   ui.screen = screen;
   if (screen !== 'contacts') ui.sel = null;
   if (navigationReady) {
@@ -644,14 +664,29 @@ function render() {
   const tb = document.getElementById('tabbar');
   tb.style.display = flow ? 'none' : 'flex';
   tb.innerHTML = [['today', 'Today'], ['contacts', 'Contacts'], ['projects', 'Projects']]
-    .map(([id, label]) => `<button type="button" class="${ui.tab === id ? 'on' : ''}" aria-current="${ui.tab === id ? 'page' : 'false'}" onclick="go('${id}')">${ICONS[id]}${label}</button>`).join('')
-    + `<a href="dashboard.html">${ICONS.dash}Dashboard</a>`;
+    .map(([id, label]) => `<button type="button" class="${ui.tab === id ? 'on' : ''}" aria-current="${ui.tab === id ? 'page' : 'false'}" onclick="go('${id}')">${ICONS[id]}<span class="tlbl">${label}</span></button>`).join('')
+    + `<a href="dashboard.html">${ICONS.dash}<span class="tlbl">Dashboard</span></a>`;
   const sideKey = ui.screen === 'today' && !ui.eventId ? 'picker' : ui.screen;
   document.querySelectorAll('#sideSteps li').forEach(li => li.classList.toggle('on', li.dataset.s === sideKey));
+  // The active tab's name "moves" to the top: its tabbar label hides and the headline rises in.
+  if (ui.flyTitle) { el.querySelector('.title')?.classList.add('fly'); ui.flyTitle = false; }
   AFTER[ui.screen]?.();
 }
 
 // ---------- screens ----------
+// A collapsible project group on the contacts tab; the header stays a drop target while collapsed.
+function contactGroup(pid, head, list, emptyText) {
+  const key = pid || 'none';
+  const collapsed = (ui.collapsed || (ui.collapsed = {}))[key];
+  return `<div class="dropzone" data-pid="${pid}">
+    <button type="button" class="section-title group-toggle" aria-expanded="${collapsed ? 'false' : 'true'}" onclick="toggleGroup('${key}')"><span class="chev" aria-hidden="true">▾</span>${head}</button>
+    ${collapsed ? '' : (list.length ? list.map(c => personRow(c, true)).join('') : `<div class="empty small">${emptyText}</div>`)}</div>`;
+}
+function toggleGroup(key) {
+  ui.collapsed = ui.collapsed || {};
+  ui.collapsed[key] = !ui.collapsed[key];
+  render();
+}
 function personRow(c, assignable) {
   const p = proj(c.project_id);
   const selecting = assignable && Array.isArray(ui.sel);
@@ -687,10 +722,8 @@ const SCREENS = {
         ? 'Tap the contacts to move, then choose a project below.'
         : 'Grouped by project. Drag a card onto a group (press and hold on the phone), or tap Select for several at once.'}
         Filters and sorting: <a href="dashboard.html" class="linkbtn">dashboard</a>.</p>
-      ${groups.map(g => `<div class="dropzone" data-pid="${g.p.id}"><div class="section-title">${projTag(g.p)} ${esc(g.p.name)} · ${g.list.length}</div>
-        ${g.list.length ? g.list.map(c => personRow(c, true)).join('') : '<div class="empty small">No one yet</div>'}</div>`).join('')}
-      <div class="dropzone" data-pid=""><div class="section-title">No project yet · ${none.length}</div>
-        ${none.length ? none.map(c => personRow(c, true)).join('') : '<div class="empty small">Everyone is assigned</div>'}</div>
+      ${groups.map(g => contactGroup(g.p.id, `${projTag(g.p)} ${esc(g.p.name)} · ${g.list.length}`, g.list, 'No one yet')).join('')}
+      ${contactGroup('', `No project yet · ${none.length}`, none, 'Everyone is assigned')}
       ${selecting && ui.sel.length ? `<div class="card assignbar">
         <div class="small" style="font-weight:650">${ui.sel.length} selected → assign to</div>
         <div class="pchips" style="margin-top:8px">
@@ -703,17 +736,6 @@ const SCREENS = {
     return `
       <div class="title">Your projects</div>
       <p class="sub small">The AI compares every new contact with these descriptions. Imported Notion projects are copied into Syncy and work like your other projects.</p>
-      <div class="card projects-import">
-        <div style="font-weight:700">Import projects from Notion</div>
-        <p class="muted small">Connect a workspace, choose a shared projects database, and copy its projects into Syncy.</p>
-        ${notionUi.connected ? `<div class="muted small" style="margin-bottom:10px">Connected${notionUi.workspace ? ` to ${esc(notionUi.workspace)}` : ''} · Notion access stays private to your account</div>
-          <button class="btn" onclick="loadNotionSources()" ${notionUi.busy ? 'disabled' : ''}>Choose database</button>
-          ${notionUi.sources.length ? `<label class="field"><span>Projects database</span><select class="edit" id="notionSource" onchange="notionUi.selected=this.value">${notionUi.sources.map(source => `<option value="${esc(source.id)}" ${source.id === notionUi.selected ? 'selected' : ''}>${esc(source.title)}</option>`).join('')}</select></label>
-            <button class="btn btn-primary btn-block" style="margin-top:10px" onclick="importNotionProjects()" ${notionUi.busy ? 'disabled' : ''}>${notionUi.busy ? 'Importing…' : 'Import projects'}</button>` : ''}
-          <button class="linkbtn" style="margin:10px 0 0 10px" onclick="connectNotion()" ${notionUi.busy ? 'disabled' : ''}>Reconnect</button>`
-          : `<button class="btn btn-primary" onclick="connectNotion()" ${notionUi.busy ? 'disabled' : ''}>${notionUi.busy ? 'Connecting…' : 'Connect Notion'}</button>`}
-        ${notionUi.message ? `<div class="muted small" role="status" style="margin-top:10px">${esc(notionUi.message)}</div>` : ''}
-      </div>
       ${projects().map(p => {
         if (ui.projForm === p.id) return projectFormHtml(p);
         const list = all.filter(c => c.project_id === p.id);
@@ -732,8 +754,21 @@ const SCREENS = {
         <summary style="font-weight:600;cursor:pointer">＋ Add a project</summary>
         <label class="field"><span>Name</span><input class="edit" id="pName" placeholder="e.g. Find a UX designer partner"></label>
         <label class="field"><span>What are you looking for?</span><textarea class="edit" id="pDesc" rows="3" placeholder="One or two sentences. The AI matches contacts against this."></textarea></label>
+        <label class="field"><span>Icon (emoji, optional)</span><input class="edit" id="pEmoji" maxlength="4" placeholder="📌"></label>
         <button class="btn btn-primary btn-block" style="margin-top:12px" onclick="addProject()">Add project</button>
-      </details>`;
+      </details>
+      <div class="card projects-import" style="margin-top:10px">
+        <div style="font-weight:700">Import projects from Notion</div>
+        <p class="muted small">Connect a workspace, choose a shared projects database, and copy its projects into Syncy.</p>
+        ${notionUi.connected ? `<div class="muted small" style="margin-bottom:10px">Connected${notionUi.workspace ? ` to ${esc(notionUi.workspace)}` : ''} · Notion access stays private to your account</div>
+          <button class="btn" onclick="loadNotionSources()" ${notionUi.busy ? 'disabled' : ''}>Choose database</button>
+          ${notionUi.sources.length ? `<label class="field"><span>Projects database</span><select class="edit" id="notionSource" onchange="notionUi.selected=this.value">${notionUi.sources.map(source => `<option value="${esc(source.id)}" ${source.id === notionUi.selected ? 'selected' : ''}>${esc(source.title)}</option>`).join('')}</select></label>
+            <button class="btn btn-primary btn-block" style="margin-top:10px" onclick="importNotionProjects()" ${notionUi.busy ? 'disabled' : ''}>${notionUi.busy ? 'Importing…' : 'Import projects'}</button>` : ''}
+          <button class="linkbtn" style="margin:10px 0 0 10px" onclick="connectNotion()" ${notionUi.busy ? 'disabled' : ''}>Reconnect</button>`
+          : `<button class="btn btn-primary" onclick="connectNotion()" ${notionUi.busy ? 'disabled' : ''}>${notionUi.busy ? 'Connecting…' : 'Connect Notion'}</button>`}
+        ${notionUi.message ? `<div class="muted small" role="status" style="margin-top:10px">${esc(notionUi.message)}</div>` : ''}
+      </div>
+      <button class="btn btn-block" style="margin-top:14px" onclick="signOut()">Sign out</button>`;
   },
 
   scan() {
@@ -1488,21 +1523,24 @@ async function deleteCurrentContact() {
 function addProject() {
   const name = document.getElementById('pName').value.trim();
   if (!name) { document.getElementById('pName').focus(); return; }
-  db.insert('projects', { name, description: document.getElementById('pDesc').value.trim(), emoji: '📌', archived: false, external_source: null, external_id: null, external_updated_at: null });
+  db.insert('projects', { name, description: document.getElementById('pDesc').value.trim(), emoji: document.getElementById('pEmoji')?.value.trim() || '📌', archived: false, external_source: null, external_id: null, external_updated_at: null });
   render();
 }
 function projectFormHtml(p) {
+  const contacts = db.list('contacts').filter(c => c.project_id === p.id).length;
   return `<div class="card proj-card">
     <b>Edit project</b>
     <label class="field"><span>Name</span><input class="edit" id="pEditName" value="${esc(p.name)}"></label>
-    <label class="field"><span>What are you looking for?</span><textarea class="edit" id="pEditDesc" rows="3">${esc(p.description || '')}</textarea></label>
+    <label class="field"><span>What are you looking for?</span><textarea class="edit" id="pEditDesc" rows="3" placeholder="One or two sentences. The AI matches contacts against this.">${esc(p.description || '')}</textarea></label>
+    <label class="field"><span>Icon (emoji)</span><input class="edit" id="pEditEmoji" value="${esc(p.emoji || '')}" maxlength="4" placeholder="📌"></label>
+    <div class="muted small" style="margin-top:8px">${contacts} ${contacts === 1 ? 'contact' : 'contacts'} assigned${p.external_source === 'notion' ? ' · imported from Notion (re-import refreshes name and description)' : ''}</div>
     <div class="row" style="margin-top:12px"><button class="btn" onclick="ui.projForm=null;render()">Cancel</button><button class="btn btn-primary" onclick="saveProject('${p.id}')">Save</button></div>
   </div>`;
 }
 async function saveProject(id) {
   const name = document.getElementById('pEditName').value.trim();
   if (!name) { document.getElementById('pEditName').focus(); return; }
-  db.update('projects', id, { name, description: document.getElementById('pEditDesc').value.trim() });
+  db.update('projects', id, { name, description: document.getElementById('pEditDesc').value.trim(), emoji: document.getElementById('pEditEmoji').value.trim() || '📌' });
   ui.projForm = null;
   render();
   if (db.live) { try { await db.flush('projects', id); } catch (error) { toast(`Could not save the project: ${error.message || error}`, { type: 'error' }); } }
