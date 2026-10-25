@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#fffcf7">
+<meta name="theme-color" content="#fffdf9">
 <title>Syncy</title>
 <!--
   Phase 1 phone flow: choose / create event → scan → note → AI processing → review and save.
@@ -11,24 +11,25 @@
 -->
 <style>
 :root {
-  --bg: #f3efe8;
-  --phone: #fffcf7;
-  --ink: #30281f;
-  --muted: #71685c;
-  --line: #e5dccf;
-  --card: #fffdf9;
-  --accent: #b95835;
-  --accent-hover: #98472e;
-  --accent-2: #c39858;
-  --accent-soft: #f5e9de;
-  --accent-ink: #8f472d;
-  --ok: #5f6f49;
-  --ok-soft: #e9efe1;
-  --danger: #a54739;
+  --bg: #f3efe9;
+  --phone: #fffdf9;
+  --ink: #1f1b17;
+  --muted: #71695f;
+  --line: #ebe3d8;
+  --card: #fff;
+  --accent: #e4602a;
+  --accent-hover: #c94f1e;
+  --accent-2: #f3a33f;
+  --accent-soft: #fdede3;
+  --accent-ink: #a8431a;
+  --ok: #2c8a57;
+  --ok-soft: #e4f3ea;
+  --danger: #c2372b;
+  --grey-soft: #f1ebe3;
   --linkedin: #0a66c2;
   --xing: #026466;
-  --shadow: 0 1px 2px rgba(48, 40, 31, .04), 0 5px 16px rgba(48, 40, 31, .045);
-  --radius: 14px;
+  --shadow: 0 1px 2px rgba(40, 28, 16, .06), 0 6px 18px rgba(40, 28, 16, .07);
+  --radius: 16px;
   --ease-out: cubic-bezier(.23, 1, .32, 1);
   --ease-in-out: cubic-bezier(.77, 0, .175, 1);
   --ease-drawer: cubic-bezier(.32, .72, 0, 1);
@@ -109,17 +110,18 @@ input, textarea, select { font: inherit; color: inherit; }
 .small { font-size: 13px; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; box-shadow: none; }
 .section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 22px 0 8px; }
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 16px; border-radius: 10px; font-weight: 600; background: #eee8de; text-decoration: none; color: var(--ink); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 16px; border-radius: 10px; font-weight: 600; background: var(--grey-soft); text-decoration: none; color: var(--ink); }
 .btn svg, .pchip svg, .linkbtn svg, .seg svg { width: 17px; height: 17px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .btn-primary { background: var(--accent); color: #fff; }
 .btn-block { width: 100%; }
 .btn:disabled { opacity: .45; cursor: default; box-shadow: none; }
 .btn-sm { min-height: 44px; padding: 7px 12px; font-size: 13px; border-radius: 10px; }
-.icon-btn { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: #f1ebe3; font-size: 16px; flex: none; }
+.icon-btn { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--grey-soft); font-size: 16px; flex: none; }
+.icon-btn svg { display: block; width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .dark .icon-btn { background: rgba(255, 255, 255, .12); color: #fff; }
 .pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .pill.ok { background: var(--ok-soft); color: var(--ok); }
-.pill.grey { background: #eee8de; color: var(--muted); }
+.pill.grey { background: var(--grey-soft); color: var(--muted); }
 .src { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 4px; color: #fff; font-size: 11px; font-weight: 800; flex: none; }
 a.src { text-decoration: none; }
 .ptag { display: inline-grid; place-items: center; width: 17px; height: 17px; border-radius: 5px; color: #fff; font-size: 9px; font-weight: 800; letter-spacing: .02em; flex: none; }
@@ -151,21 +153,21 @@ textarea.edit:focus, input.edit:focus, select.edit:focus { outline: 2px solid va
 .ev-option .today { font-size: 11px; font-weight: 700; color: var(--accent-ink); background: var(--accent-soft); padding: 2px 7px; border-radius: 999px; margin-left: 6px; }
 .new-event { border: 1.5px dashed var(--line); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; }
 .pchips { display: flex; flex-wrap: wrap; gap: 6px; }
-.pchip { min-height: 44px; font-size: 13px; font-weight: 600; padding: 7px 11px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--muted); text-align: left; }
+.pchip { min-height: 44px; font-size: 13px; font-weight: 600; padding: 7px 11px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--muted); text-align: left; transition: background-color .16s, border-color .16s, color .16s, transform .16s var(--ease-out), box-shadow .16s; }
 .pchip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
 .ev-edit { display: block; min-height: 44px; padding: 8px 0; margin: -2px 0 10px 46px; font-size: 13px; font-weight: 600; color: var(--accent-ink); }
 .ev-option .ev-link { display: block; font-size: 12px; color: var(--accent-ink); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ev-url { display: flex; gap: 10px; align-items: center; margin-top: 4px; font-size: 12.5px; }
 .ev-url a { color: #ffd9a0; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ev-url a:hover { text-decoration: underline; }
-.ev-url button { color: #d9c9b8; font-size: 12.5px; text-decoration: underline; }
+.ev-url button { color: #ebe3d8; font-size: 12.5px; text-decoration: underline; }
 .url-error { color: var(--danger); font-size: 12.5px; min-height: 0; margin-top: 4px; }
 .stick-bottom { position: sticky; bottom: -24px; margin: 16px -18px -24px; padding: 12px 18px 18px; background: linear-gradient(180deg, rgba(255, 253, 249, 0), var(--phone) 30%); }
 
 /* ---------- event home ---------- */
-.event { display: flex; gap: 12px; align-items: center; background: #2a221b; color: #fff; border-radius: var(--radius); padding: 14px; }
-.event .dot { width: 10px; height: 10px; border-radius: 50%; background: #aab88a; box-shadow: 0 0 0 4px rgba(170, 184, 138, .2); flex: none; }
-.event small { color: #d9c9b8; }
+.event { display: flex; gap: 12px; align-items: center; background: #1f1b17; color: #fff; border-radius: var(--radius); padding: 14px; }
+.event .dot { width: 10px; height: 10px; border-radius: 50%; background: #5be38f; box-shadow: 0 0 0 4px rgba(91, 227, 143, .2); flex: none; }
+.event small { color: #ebe3d8; }
 .event .leave { margin-left: auto; font-size: 12.5px; font-weight: 600; color: #fff; background: rgba(255, 255, 255, .14); padding: 6px 10px; border-radius: 10px; }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
 .stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
@@ -175,8 +177,9 @@ textarea.edit:focus, input.edit:focus, select.edit:focus { outline: 2px solid va
 .scan-cta svg { width: 40px; height: 40px; flex: none; }
 .scan-cta b { font-size: 17px; display: block; }
 .scan-cta small { opacity: .9; }
-.person { display: flex; gap: 12px; align-items: flex-start; padding: 12px 4px; margin-bottom: 0; width: 100%; text-align: left; cursor: pointer; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
-@media (hover: hover) and (pointer: fine) { .person:hover:not(.selected) { background: #f8f4ed; } }
+.person { display: flex; gap: 12px; align-items: flex-start; padding: 14px; margin-bottom: 8px; width: 100%; text-align: left; cursor: pointer; border: 1px solid var(--line); border-radius: 14px; background: var(--card); box-shadow: var(--shadow); transition: transform .18s var(--ease-out), box-shadow .18s var(--ease-out), border-color .18s, background-color .18s; }
+@media (hover: hover) and (pointer: fine) { .person:hover:not(.selected) { transform: translateY(-1px); border-color: var(--accent-2); box-shadow: 0 8px 22px rgba(40, 28, 16, .1); } }
+.person:active { transform: scale(.995); }
 .person .meta { flex: 1; min-width: 0; }
 .person .name { font-weight: 650; display: flex; align-items: center; gap: 6px; }
 .person .role { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -194,8 +197,10 @@ textarea.edit:focus, input.edit:focus, select.edit:focus { outline: 2px solid va
 .assignbar { position: sticky; bottom: 6px; z-index: 5; margin-top: 14px; padding: 12px; box-shadow: 0 -4px 18px rgba(40, 28, 16, .10), var(--shadow); }
 
 /* ---------- scan ---------- */
-.flowbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.flowbar .step { font-size: 13px; color: var(--muted); }
+.flowbar { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-bottom: 16px; }
+.flowbar .step { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--muted); }
+.flowbar .flow-end { width: 44px; }
+.flowbar .flow-actions { display: flex; align-items: center; gap: 6px; }
 .dark .flowbar .step { color: #bfb3a6; }
 .viewfinder { position: relative; width: 230px; height: 230px; margin: 10px auto 14px; border-radius: 24px; background: radial-gradient(circle, #2c2620, #15120f 75%); display: grid; place-items: center; overflow: hidden; }
 .viewfinder .corner { position: absolute; width: 38px; height: 38px; border: 4px solid #fff; }
@@ -208,9 +213,9 @@ textarea.edit:focus, input.edit:focus, select.edit:focus { outline: 2px solid va
 .viewfinder .qr { width: 140px; height: 140px; border-radius: 8px; opacity: .2; filter: blur(2px); transition: opacity .35s var(--ease-out), filter .35s var(--ease-out); }
 .viewfinder.hit .qr { opacity: 1; filter: none; }
 .viewfinder.hit .line { display: none; }
-.viewfinder.hit .corner { border-color: #c0cba2; }
+.viewfinder.hit .corner { border-color: #5be38f; }
 .detected { text-align: center; min-height: 54px; font-size: 14px; }
-.detected .ok { color: #c0cba2; font-weight: 700; }
+.detected .ok { color: #5be38f; font-weight: 700; }
 .detected code { font-size: 12.5px; color: #e8dccf; }
 .saved-row { margin: 8px auto 0; max-width: 300px; text-align: left; font-size: 12.5px; background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .14); border-radius: 12px; padding: 8px 10px; color: #e8dccf; }
 .saved-row div { display: flex; justify-content: space-between; gap: 10px; }
@@ -230,7 +235,7 @@ textarea.edit:focus, input.edit:focus, select.edit:focus { outline: 2px solid va
 /* ---------- note ---------- */
 .linkchip { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: #f6f1ea; font-size: 13px; }
 .linkchip code { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: #eee8de; padding: 4px; border-radius: 12px; margin: 12px 0 10px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--grey-soft); padding: 4px; border-radius: 12px; margin: 12px 0 10px; }
 .seg button { padding: 9px 8px; border-radius: 11px; font-weight: 600; color: var(--muted); }
 .seg button.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(48, 40, 31, .08); }
 .prompts { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 8px; }
@@ -269,7 +274,7 @@ textarea.edit:focus, input.edit:focus, select.edit:focus { outline: 2px solid va
 .who .avatar { width: 54px; height: 54px; font-size: 18px; }
 .who .n { font-size: 19px; font-weight: 700; }
 .who .r { color: var(--muted); font-size: 13.5px; }
-.match { border: 1px solid var(--line); border-left: 3px solid var(--accent-2); background: #f8f2e8; border-radius: 12px; padding: 14px; margin-top: 14px; }
+.match { border: 1px solid var(--line); border-left: 3px solid var(--accent-2); background: linear-gradient(180deg, #fff8ef, #fff); border-radius: 12px; padding: 14px; margin-top: 14px; }
 .match .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .match .reason { font-size: 13.5px; margin-top: 8px; }
 ul.bul { margin: 0; padding-left: 18px; }
@@ -291,14 +296,15 @@ ul.bul li { margin: 3px 0; }
 
 /* ---------- projects ---------- */
 .proj-card, .projects-import { margin-bottom: 10px; }
-.proj-card.display { padding: 12px; box-shadow: none; }
+.proj-card.display { padding: 12px; box-shadow: var(--shadow); transition: transform .18s var(--ease-out), box-shadow .18s var(--ease-out), border-color .18s; }
+.projects-import { box-shadow: var(--shadow); }
 .proj-card .ph { display: flex; gap: 8px; align-items: center; font-weight: 700; }
 .proj-card .ph > span:nth-child(2) { overflow-wrap: anywhere; }
-.proj-card .emoji { width: 36px; height: 36px; border-radius: 10px; background: #f6f1ea; display: grid; place-items: center; font-size: 18px; }
+.proj-card .emoji { width: 36px; height: 36px; border-radius: 10px; background: var(--grey-soft); display: grid; place-items: center; font-size: 18px; }
 .proj-card .goal { color: var(--muted); font-size: 13.5px; margin: 6px 0 8px; }
 .proj-card .goal { overflow-wrap: anywhere; }
 .proj-actions { display: flex; gap: 8px; flex: none; }
-.proj-action { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: #f1ebe3; }
+.proj-action { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--grey-soft); }
 .proj-action svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .proj-action.delete { color: var(--danger); }
 .faces { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
@@ -316,18 +322,21 @@ details.card > summary { min-height: 44px; display: flex; align-items: center; }
 .group-toggle[aria-expanded="false"] .chev { transform: rotate(-90deg); }
 
 /* ---------- restrained interaction feedback ---------- */
-.btn, .scan-cta, .icon-btn, .chip, .proj-action, .seg button, .urlrow button, .tabbar button, .tabbar a, .pchip { transition: background-color .15s, color .15s, border-color .15s; }
+.btn, .scan-cta, .icon-btn, .chip, .proj-action, .seg button, .urlrow button, .tabbar button, .tabbar a, .pchip { transition: background-color .16s, color .16s, border-color .16s, transform .16s var(--ease-out), box-shadow .16s; }
 @media (hover: hover) and (pointer: fine) {
-  .btn:hover:not(:disabled), .icon-btn:hover, .proj-action:hover, .chip:hover:not(:disabled), .pchip:hover, .seg button:hover, .tabbar button:hover, .tabbar a:hover { background-color: #eee7de; }
+  .btn:hover:not(:disabled), .icon-btn:hover, .proj-action:hover, .chip:hover:not(:disabled), .pchip:hover, .seg button:hover, .tabbar button:hover, .tabbar a:hover { background-color: var(--grey-soft); }
   .btn-primary:hover:not(:disabled), .scan-cta:hover { background-color: var(--accent-hover); }
-  .proj-card.display:hover { border-color: #d8c7b5; }
+  .pchip.on:hover { background-color: var(--accent-soft); border-color: var(--accent); }
+  .person:hover:not(.selected) { background-color: var(--card); }
+  .proj-card.display:hover { transform: translateY(-2px); border-color: var(--accent-2); box-shadow: 0 10px 26px rgba(40, 28, 16, .11); }
 }
+.pchip:active, .btn:active:not(:disabled), .scan-cta:active, .icon-btn:active, .proj-action:active, .seg button:active, .tabbar button:active, .tabbar a:active { transform: scale(.98); }
 
 /* ---------- toasts (Sonner-style: transitions, not keyframes; interruptible) ---------- */
 .toasts { position: absolute; left: 14px; right: 14px; bottom: 18px; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; z-index: 60; }
 .toast { pointer-events: auto; display: flex; align-items: center; gap: 8px; max-width: 100%; background: #241f1a; color: #fff; font-size: 13.5px; font-weight: 500; line-height: 1.4; padding: 10px 15px; border-radius: 14px; box-shadow: 0 8px 26px rgba(0, 0, 0, .28); transition: transform .35s var(--ease-out), opacity .35s var(--ease-out); }
 .toast::before { font-weight: 800; flex: none; }
-.toast.success::before { content: '✓'; color: #c7d1ad; }
+.toast.success::before { content: '✓'; color: #8ce0a5; }
 .toast.error::before { content: '!'; color: #e6ad9d; }
 .toast[data-state="pre"] { opacity: 0; transform: translateY(14px) scale(.97); }
 .toast[data-state="out"] { opacity: 0; transform: translateY(8px) scale(.97); transition-duration: .2s; }
@@ -474,7 +483,7 @@ const PERSONAS = [
 ];
 const personaFor = url => PERSONAS.find(p => parseProfile(p.url).profile_url === url);
 
-const COLORS = ['#9f4d32', '#566545', '#765c42', '#8b6939', '#67574a', '#59645a'];
+const COLORS = ['#e4602a', '#2c8a57', '#0a66c2', '#7a4bc0', '#c2410c', '#0f766e'];
 const STAGE_LABEL = { to_follow_up: 'To follow up', followed_up: 'Followed up', meeting_set: 'Meeting set', won: 'Won', not_relevant: 'Not relevant' };
 
 let ui;
@@ -657,9 +666,14 @@ function render() {
     ui.screen = ui.tab; ui.contactId = null; ui.draft = null;
   }
   const el = document.getElementById('screen');
+  const screenChanged = el.dataset.screen && el.dataset.screen !== ui.screen;
+  el.dataset.screen = ui.screen;
   const flow = ['scan', 'note', 'processing', 'review', 'saved', 'detail'].includes(ui.screen);
   el.className = 'screen' + (ui.screen === 'scan' ? ' dark' : '');
   el.innerHTML = SCREENS[ui.screen]();
+  if (screenChanged && el.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    el.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 190, easing: 'cubic-bezier(.23, 1, .32, 1)' });
+  }
   const tb = document.getElementById('tabbar');
   tb.style.display = flow ? 'none' : 'flex';
   tb.innerHTML = [['today', 'Today'], ['contacts', 'Contacts'], ['projects', 'Projects']]
@@ -772,7 +786,7 @@ const SCREENS = {
     const ev = event(ui.eventId);
     const hit = ui.justScanned && db.get('contacts', ui.justScanned);
     return `
-      <div class="flowbar"><button class="icon-btn" onclick="go('today')">✕</button><span class="step">${esc(ev.name)} · Scan</span><span style="width:36px"></span></div>
+      <div class="flowbar"><button class="icon-btn" aria-label="Back to today" onclick="go('today')">✕</button><span class="step">${esc(ev.name)} · Scan</span><span class="flow-end" aria-hidden="true"></span></div>
       ${db.live && !hit ? '<div id="qr-reader" style="width:100%;margin:14px 0;border-radius:16px;overflow:hidden"></div>' : ''}
       <div class="viewfinder ${hit ? 'hit' : ''}" ${db.live ? 'style="display:none"' : ''}>
         ${qrSvg(hit ? hit.profile_url : 'placeholder')}
@@ -811,7 +825,7 @@ const SCREENS = {
     const processPending = c.status === 'processing';
     const canProcess = !alreadyProcessed && !processPending && (textMode ? ui.noteText.trim().length > 0 : voiceDone && ui.noteText.trim().length > 0);
     return `
-      <div class="flowbar"><button class="icon-btn" ${voiceBusy ? 'disabled' : ''} onclick="go('today')">✕</button><span class="step">Note</span><span style="width:36px"></span></div>
+      <div class="flowbar"><button class="icon-btn" aria-label="Back to today" ${voiceBusy ? 'disabled' : ''} onclick="go('today')">✕</button><span class="step">Note</span><span class="flow-end" aria-hidden="true"></span></div>
       <div class="linkchip">${srcBadge(c.source, c.profile_url)}<code>${esc(c.profile_url)}</code><span class="pill ok">✓ saved</span></div>
       <div class="label">Which project is ${esc((c.name || 'this person').split(' ')[0])} for? <span class="ai">optional</span></div>
       <div class="pchips" id="pchips">
@@ -868,7 +882,7 @@ const SCREENS = {
     const ev = event(d.event_id);
     const editingSaved = ui.from === 'detail';
     return `
-      <div class="flowbar"><button class="icon-btn" onclick="${editingSaved ? `openContact('${d.id}')` : `go('note')`}">‹</button><span class="step">${editingSaved ? 'Edit contact' : 'Review'}</span><span style="width:36px"></span></div>
+      <div class="flowbar"><button class="icon-btn" aria-label="${editingSaved ? 'Back to contact' : 'Back to note'}" onclick="${editingSaved ? `openContact('${d.id}')` : `go('note')`}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m7 7-7-7 7-7"/></svg></button><span class="step">${editingSaved ? 'Edit contact' : 'Review'}</span><span class="flow-end" aria-hidden="true"></span></div>
       <div class="who">${avatar(d.name, 54)}<div style="flex:1;min-width:0">
         <div class="n">${esc(d.name || d.profile_slug)}</div>
         <div class="r">${esc(SOURCE_LABEL[d.source])} · ${ev ? esc(ev.name) : 'No event'}</div></div>${srcBadge(d.source, d.profile_url)}</div>
@@ -889,7 +903,7 @@ const SCREENS = {
         <label class="field"><span>Role</span><input class="edit" value="${esc(d.role)}" placeholder="—" oninput="ui.draft.role=this.value"></label>
         <label class="field"><span>Company</span><input class="edit" value="${esc(d.company)}" placeholder="—" oninput="ui.draft.company=this.value"></label>
       </div>
-      <label class="field"><span>Summary <span class="ai">AI · editable</span></span><textarea class="edit" rows="2" oninput="ui.draft.summary=this.value">${esc(d.summary)}</textarea></label>
+      <label class="field"><span>Summary <span class="ai" id="reviewSummarySource">${d.summary_edited_by_user ? 'Suggested by you' : 'AI · editable'}</span></span><textarea class="edit" rows="2" oninput="ui.draft.summary=this.value;ui.draft.summary_edited_by_user=true;document.getElementById('reviewSummarySource').textContent='Suggested by you'">${esc(d.summary)}</textarea></label>
       <label class="field"><span>What you talked about (one per line, max 3)</span><textarea class="edit" rows="3" oninput="ui.draft.discussed=this.value.split('\\n').map(s=>s.trim()).filter(Boolean).slice(0,3)">${esc((d.discussed || []).join('\n'))}</textarea></label>
       <div class="row">
         <label class="field" style="flex:1.4"><span>Next step</span><input class="edit" value="${esc(d.next_step)}" oninput="ui.draft.next_step=this.value"></label>
@@ -924,7 +938,7 @@ const SCREENS = {
     if (!c) return `<div class="title">Contact unavailable</div><p class="sub">This contact may have been deleted.</p><button class="btn" onclick="go(ui.tab)">Back to contacts</button>`;
     const p = proj(c.project_id), ev = event(c.event_id);
     return `
-      <div class="flowbar"><button class="icon-btn" onclick="go(ui.tab)">‹</button><span class="step">${ev ? esc(ev.name) : ''}</span><span><button class="btn btn-sm" onclick="editContact()">Edit</button> <button class="btn btn-sm" style="color:var(--danger)" onclick="deleteCurrentContact()">Delete</button></span></div>
+      <div class="flowbar"><button class="icon-btn" aria-label="Back" onclick="go(ui.tab)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m7 7-7-7 7-7"/></svg></button><span class="step">${ev ? esc(ev.name) : ''}</span><span class="flow-actions"><button class="btn btn-sm" onclick="editContact()">Edit</button><button class="btn btn-sm" style="color:var(--danger)" onclick="deleteCurrentContact()">Delete</button></span></div>
       <div class="who">${avatar(c.name, 54)}<div style="flex:1"><div class="n">${esc(c.name)}</div><div class="r">${esc([c.role, c.company].filter(Boolean).join(' · '))}</div></div>${srcBadge(c.source, c.profile_url)}</div>
       <div class="linkchip" style="margin-top:12px">${srcBadge(c.source, c.profile_url)}<code>${esc(c.profile_url)}</code></div>
       <div class="match"><div class="muted small">Project</div>
@@ -1468,7 +1482,7 @@ function assignProject(id) {
 async function saveContact(btn) {
   btn.disabled = true; btn.textContent = 'Saving…';
   const d = ui.draft;
-  const fields = ['name', 'role', 'company', 'summary', 'discussed', 'needs', 'project_id', 'project_set_by', 'match_reason', 'match_confidence', 'next_step', 'next_step_date', 'follow_up_draft'];
+  const fields = ['name', 'role', 'company', 'summary', 'summary_edited_by_user', 'discussed', 'needs', 'project_id', 'project_set_by', 'match_reason', 'match_confidence', 'next_step', 'next_step_date', 'follow_up_draft'];
   const patch = Object.fromEntries(fields.map(f => [f, d[f] === '' ? null : d[f]]));
   const save = async () => {
     db.update('contacts', d.id, { ...patch, status: 'saved' });
